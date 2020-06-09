@@ -8,13 +8,20 @@ namespace FeatherMap
 {
     public class Mapping<TSource, TTarget>
     {
+        private Action<TSource, TTarget> _sourceToTargetFunc;
+        private Action<TSource, TTarget> _targetToSourceFunc;
+
         internal readonly Func<TSource> SourceConstructor;
         internal readonly Func<TTarget> TargetConstructor;
 
-        private Mapping()
+        private Mapping(Action<TSource, TTarget> sourceToTargetFunc, Action<TSource, TTarget> targetToSourceFunc)
         {
             SourceConstructor = GetDefaultConstructor<TSource>();
             TargetConstructor = GetDefaultConstructor<TTarget>();
+
+            _sourceToTargetFunc = sourceToTargetFunc;
+            _targetToSourceFunc = targetToSourceFunc;
+
         }
 
         public static IMappingBuilder<TSource, TTarget> New() => new MappingBuilder();
@@ -160,40 +167,15 @@ namespace FeatherMap
             return targetToSourceAction;
         }
 
-        private readonly List<Action<TSource, TTarget>> _sourceToTargetActions = new List<Action<TSource, TTarget>>();
-        private readonly List<Action<TSource, TTarget>> _targetToSourceActions = new List<Action<TSource, TTarget>>();
-
-        public IEnumerable<Action<TSource, TTarget>> SourceToTargetActions => _sourceToTargetActions;
-        public IEnumerable<Action<TSource, TTarget>> TargetToSourceActions => _targetToSourceActions;
-
         public (Action<TTarget> To, Action<TTarget> ToTarget) Map(TSource source)
             => (target => MapToTarget(source, target), target => MapToTarget(source, target));
 
         public (Action<TSource> To, Action<TSource> ToSource) Map(TTarget target) 
             => (source => MapToSource(source, target), source => MapToSource(source, target));
 
-        public void MapToTarget(TSource source, TTarget target)
-        {
-            for (int i = 0; i < _sourceToTargetActions.Count; i++)
-                _sourceToTargetActions[i](source, target);
-        }
+        public void MapToTarget(TSource source, TTarget target) => _sourceToTargetFunc(source, target);
 
-        public void MapToSource(TSource source, TTarget target)
-        {
-            for (int i = 0; i < _targetToSourceActions.Count; i++)
-                _targetToSourceActions[i](source, target);
-        }
-
-        private void AddPropertyMap(
-            Action<TSource, TTarget> sourceToTarget,
-            Action<TSource, TTarget> targetToSource)
-        {
-            if (sourceToTarget != null)
-                _sourceToTargetActions.Add(sourceToTarget);
-
-            if (targetToSource != null)
-                _targetToSourceActions.Add(targetToSource);
-        }
+        public void MapToSource(TSource source, TTarget target) => _targetToSourceFunc(source, target);
 
         private class MappingBuilder : IMappingBuilder<TSource, TTarget>
         {
@@ -202,12 +184,25 @@ namespace FeatherMap
 
             public Mapping<TSource, TTarget> Build()
             {
-                var configuration = new Mapping<TSource, TTarget>();
+                Action<TSource, TTarget> sourceToTarget = (source, target) => {};
+                Action<TSource, TTarget> targetToSource = (source, target) => {};
 
-                foreach (var propertyMapping in _mappedProperties)
-                    configuration.AddPropertyMap(propertyMapping.SourceToTarget, propertyMapping.TargetToSource);
+                using (var enumerator = _mappedProperties.GetEnumerator())
+                {
+                    if (enumerator.MoveNext())
+                    {
+                        sourceToTarget = enumerator.Current.SourceToTarget;
+                        targetToSource = enumerator.Current.TargetToSource;
+                    }
 
-                return configuration;
+                    while (enumerator.MoveNext())
+                    {
+                        sourceToTarget += enumerator.Current.SourceToTarget;
+                        targetToSource += enumerator.Current.TargetToSource;
+                    }
+                }
+
+                return new Mapping<TSource, TTarget>(sourceToTarget, targetToSource);
             }
 
             internal IMappingBuilder<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(

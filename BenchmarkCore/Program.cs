@@ -3,7 +3,7 @@ using BenchmarkDotNet.Running;
 using Nelibur.ObjectMapper;
 using System;
 using System.Threading.Tasks;
-using FeatherMapper;
+using FeatherMap;
 
 namespace BenchmarkCore
 {
@@ -41,7 +41,7 @@ namespace BenchmarkCore
             _personB = new Person();
 
             var adressMapping = Mapping<Address, Address>.Auto();
-            Mapper.Register(Mapping<Person, Person>.Auto(cfg => 
+            Mapper.Register(Mapping<Person, Person>.Auto(cfg =>
                 cfg.Direction(Direction.OneWay)
                     .Bind(x => x.Address, person => person.Address, config => config.UseMapping(adressMapping))));
 
@@ -51,7 +51,7 @@ namespace BenchmarkCore
                 cfg.CreateMap<Person, Person>();
             }).CreateMapper();
 
-            TinyMapper.Bind<Person, Person>();
+            TinyMapper.Bind<Person, Person>(config => config.Ignore(person => person.Address));
 
             ExpressMapper.Mapper.Register<Person, Person>();
         }
@@ -75,7 +75,7 @@ namespace BenchmarkCore
         }
 
         [Benchmark]
-        public void ShallowObjectMapperBenchmark()
+        public void FeatherMapBenchmark()
         {
             _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
             _personB = new Person();
