@@ -28,6 +28,7 @@ namespace BenchmarkCore
 
             BenchmarkRunner.Run<Program>();
             //BenchmarkRunner.Run<StartupTime>();
+            //BenchmarkRunner.Run<GettersSetters>();
         }
 
         private Person _personA;
@@ -51,7 +52,7 @@ namespace BenchmarkCore
                 cfg.CreateMap<Person, Person>();
             }).CreateMapper();
 
-            TinyMapper.Bind<Person, Person>(config => config.Ignore(person => person.Address));
+            TinyMapper.Bind<Person, Person>();
 
             ExpressMapper.Mapper.Register<Person, Person>();
         }
