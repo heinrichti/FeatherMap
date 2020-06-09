@@ -66,7 +66,7 @@ namespace BenchmarkCore
             TinyMapper.Map(_personA, _personB);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void AutoMapperBenchmark()
         {
             _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
@@ -84,7 +84,7 @@ namespace BenchmarkCore
             Mapper.MapToTarget(_personA, _personB);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void ExpressMapperBenchmark()
         {
             _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
@@ -93,7 +93,7 @@ namespace BenchmarkCore
             ExpressMapper.Mapper.Map(_personA, _personB);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void Handwritten()
         {
             _personB.Id = _personA.Id;

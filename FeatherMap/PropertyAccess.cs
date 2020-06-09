@@ -8,7 +8,9 @@ namespace FeatherMap
     {
         internal static Action<T, TProp> CreateSetter<T, TProp>(PropertyInfo propertyInfo)
         {
-            // TODO this is significantly slower on .NET Framework than propertyInfo.GetSetMethod().CreateDelegate(typeof(Action<T, TProp>));
+#if NETFULL
+            return (Action<T, TProp>)propertyInfo.GetSetMethod().CreateDelegate(typeof(Action<T, TProp>));
+#else
             var instance = Expression.Parameter(typeof(T));
             var argument = Expression.Parameter(typeof(TProp));
 
@@ -19,15 +21,19 @@ namespace FeatherMap
                 propertySetMethod,
                 argument);
 
-            return (Action<T, TProp>)Expression.Lambda(setterCall, instance, argument).Compile();
+            return (Action<T, TProp>) Expression.Lambda(setterCall, instance, argument).Compile();
+#endif
         }
 
         internal static Func<T, TProp> CreateGetter<T, TProp>(PropertyInfo propertyInfo)
         {
-            // TODO this is significantly slower on .NET Framework than propertyInfo.GetGetMethod().CreateDelegate(typeof(Func<T, TProp>));
+#if NETFULL
+            return (Func<T, TProp>) propertyInfo.GetGetMethod().CreateDelegate(typeof(Func<T, TProp>));
+#else
             var instance = Expression.Parameter(typeof(T));
             var property = Expression.Property(instance, propertyInfo);
             return (Func<T, TProp>)Expression.Lambda(property, instance).Compile();
+#endif
         }
     }
 }
