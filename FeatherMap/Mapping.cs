@@ -8,8 +8,8 @@ namespace FeatherMap
 {
     public class Mapping<TSource, TTarget>
     {
-        private Action<TSource, TTarget> _sourceToTargetFunc;
-        private Action<TSource, TTarget> _targetToSourceFunc;
+        private readonly Action<TSource, TTarget> _sourceToTargetFunc;
+        private readonly Action<TSource, TTarget> _targetToSourceFunc;
 
         internal readonly Func<TSource> SourceConstructor;
         internal readonly Func<TTarget> TargetConstructor;
@@ -87,18 +87,22 @@ namespace FeatherMap
                 if (!targetPropertyInfo.CanWrite)
                     return null;
 
-                var targetSetter = (Action<TTarget, TTargetProperty>)targetPropertyInfo.GetSetMethod().CreateDelegate(typeof(Action<TTarget, TTargetProperty>));
+                //var targetSetter = (Action<TTarget, TTargetProperty>)targetPropertyInfo.GetSetMethod().CreateDelegate(typeof(Action<TTarget, TTargetProperty>));
+                var targetSetter = CreateSetter<TTarget, TTargetProperty>(targetPropertyInfo);
 
                 if (config.Mapping == null)
-                { 
-                    var sourceGetter = (Func<TSource, TSourceProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TSource, TSourceProperty>));
+                {
+                    var sourceGetter = CreateGetter<TSource, TSourceProperty>(sourcePropertyInfo);
+                    //var sourceGetter = (Func<TSource, TSourceProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TSource, TSourceProperty>));
                     var converter = config.PropertyConverter;
                     sourceToTargetAction = (source, target) => targetSetter(target, converter.Convert(sourceGetter(source)));
                 }
                 else
                 {
-                    var sourceGetter = (Func<TSource, TSourceProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TSource, TSourceProperty>));
-                    var targetGetter = (Func<TTarget, TTargetProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TTarget, TTargetProperty>));
+                    var sourceGetter = CreateGetter<TSource, TSourceProperty>(sourcePropertyInfo);
+                    //var sourceGetter = (Func<TSource, TSourceProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TSource, TSourceProperty>));
+                    var targetGetter = CreateGetter<TTarget, TTargetProperty>(targetPropertyInfo);
+                    //var targetGetter = (Func<TTarget, TTargetProperty>)sourcePropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TTarget, TTargetProperty>));
                     var targetCreator = config.Mapping.TargetConstructor;
 
                     sourceToTargetAction = (source, target) =>
@@ -125,6 +129,28 @@ namespace FeatherMap
             return (Func<T>)lambda.Compile();
         }
 
+        private static Action<T, TProp> CreateSetter<T, TProp>(PropertyInfo propertyInfo)
+        {
+            var instance = Expression.Parameter(typeof(T));
+            var argument = Expression.Parameter(typeof(TProp));
+
+            var propertySetMethod = propertyInfo.GetSetMethod();
+
+            var setterCall = Expression.Call(
+                instance,
+                propertySetMethod,
+                argument);
+
+            return (Action<T, TProp>)Expression.Lambda(setterCall, instance, argument).Compile();
+        }
+
+        private static Func<T, TProp> CreateGetter<T, TProp>(PropertyInfo propertyInfo)
+        {
+            var instance = Expression.Parameter(typeof(T));
+            var property = Expression.Property(instance, propertyInfo);
+            return (Func<T, TProp>)Expression.Lambda(property, instance).Compile();
+        }
+
         private static Action<TSource, TTarget> GetTargetToSourceAction<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo, 
             PropertyInfo targetPropertyInfo,
@@ -136,18 +162,18 @@ namespace FeatherMap
                 if (!sourcePropertyInfo.CanWrite)
                     return null;
 
-                var sourceSetter = (Action<TSource, TSourceProperty>)sourcePropertyInfo.GetSetMethod().CreateDelegate(typeof(Action<TSource, TSourceProperty>));
+                var sourceSetter = CreateSetter<TSource, TSourceProperty>(sourcePropertyInfo);
                 
                 if (config.Mapping == null)
                 {
-                    var targetGetter = (Func<TTarget, TTargetProperty>)targetPropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TTarget, TTargetProperty>));
+                    var targetGetter = CreateGetter<TTarget, TTargetProperty>(targetPropertyInfo);
                     var converter = config.PropertyConverter;
                     targetToSourceAction = (source, target) => sourceSetter(source, converter.ConvertBack(targetGetter(target)));
                 }
                 else
                 {
-                    var targetGetter = (Func<TTarget, TTargetProperty>)targetPropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TTarget, TTargetProperty>));
-                    var sourceGetter = (Func<TSource, TSourceProperty>)targetPropertyInfo.GetGetMethod().CreateDelegate(typeof(Func<TSource, TSourceProperty>));
+                    var targetGetter = CreateGetter<TTarget, TTargetProperty>(targetPropertyInfo);
+                    var sourceGetter = CreateGetter<TSource, TSourceProperty>(sourcePropertyInfo);
                     var sourceCreator = config.Mapping.SourceConstructor;
 
                     targetToSourceAction = (source, target) =>
