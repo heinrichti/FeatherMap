@@ -26,8 +26,9 @@ namespace BenchmarkFramework
             //program.AutoMapperBenchmark();
             //program.TinyMapperBenchmark();
 
-            BenchmarkRunner.Run<Program>();
+            //BenchmarkRunner.Run<Program>();
             //BenchmarkRunner.Run<StartupTime>();
+            BenchmarkRunner.Run<GettersSetters>();
         }
 
         private Person _personA;
@@ -65,7 +66,7 @@ namespace BenchmarkFramework
             TinyMapper.Map(_personA, _personB);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void AutoMapperBenchmark()
         {
             _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
@@ -83,7 +84,7 @@ namespace BenchmarkFramework
             Mapper.MapToTarget(_personA, _personB);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void ExpressMapperBenchmark()
         {
             _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
@@ -92,7 +93,7 @@ namespace BenchmarkFramework
             ExpressMapper.Mapper.Map(_personA, _personB);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void Handwritten()
         {
             _personB.Id = _personA.Id;
