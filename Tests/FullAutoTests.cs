@@ -12,7 +12,7 @@ namespace Tests
             var action = NewMappingBuilder.CreateMap<TestA, TestA>();
             
             var a = new TestA() {IntTest = 12};
-            a.TestB = new TestB {StringTest = "Hello world", ARef = new TestA() {IntTest = 2, TestB = new TestB(){StringTest = "ululu"}}};
+            a.TestB = new TestB {StringTest = "Hello world", ARef = a};
 
             var b = new TestA();
 

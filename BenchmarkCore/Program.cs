@@ -13,16 +13,23 @@ namespace BenchmarkCore
     {
         static void Main(string[] args)
         {
-            var newVsOld = new NewVsOld();
-            newVsOld.Setup();
-            newVsOld.Old();
-            newVsOld.New();
+            //var newVsOld = new NewVsOld();
+            //newVsOld.Setup();
+            //newVsOld.Old();
+            //newVsOld.New();
+
+            var referenceTrackingBenchmark = new ReferenceTrackingBenchmark();
+            referenceTrackingBenchmark.Setup();
+            referenceTrackingBenchmark.AutoMapper();
+            //referenceTrackingBenchmark.ExpressMapperBenchmark();
+            referenceTrackingBenchmark.FeatherMapNew();
 
             //BenchmarkRunner.Run<Program>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
-            BenchmarkRunner.Run<NewVsOld>();
+            //BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
+            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
         }
 
         private Person _personA;
