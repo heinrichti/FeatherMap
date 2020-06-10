@@ -126,9 +126,8 @@ namespace FeatherMap.New
 
             var requiresReferenceTracking = mapFuncResult.RequiresReferenceTracking;
 
-            void MappingFunc(TSource source, TTarget target, ReferenceTracker referenceTracker)
+            void MappingFuncWithReferenceTracking(TSource source, TTarget target, ReferenceTracker referenceTracker)
             {
-                object alreadyMappedObject = null;
                 var sourceValue = getter(source);
 
                 if (sourceValue == null)
@@ -138,6 +137,8 @@ namespace FeatherMap.New
                 }
 
                 var sourceTargetType = new SourceTargetType(typeof(TSourceProperty), typeof(TTargetProperty));
+
+                object alreadyMappedObject = null;
                 if (!(referenceTracker?.TryGet(
                           sourceTargetType, 
                           sourceValue, 
@@ -154,7 +155,25 @@ namespace FeatherMap.New
                 mapFunc(sourceValue, targetProp, referenceTracker);
             }
 
-            return new ComplexMapResult<TSource, TTarget>(MappingFunc, requiresReferenceTracking);
+            void MappingFuncWithoutReferenceTracking(TSource source, TTarget target, ReferenceTracker referenceTracker)
+            {
+                var sourceValue = getter(source);
+
+                if (sourceValue == null)
+                {
+                    setter(target, default);
+                    return;
+                }
+
+                var targetProp = constructor();
+                setter(target, targetProp);
+                mapFunc(sourceValue, targetProp, referenceTracker);
+            }
+
+            if (requiresReferenceTracking)
+                return new ComplexMapResult<TSource, TTarget>(MappingFuncWithReferenceTracking, true);
+
+            return new ComplexMapResult<TSource, TTarget>(MappingFuncWithoutReferenceTracking, false);
         }
 
         private static Func<T> GetDefaultConstructor<T>()
