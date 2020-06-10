@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using FeatherMap;
-using FeatherMap.New;
+﻿using FeatherMap.New;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests
@@ -16,9 +12,9 @@ namespace Tests
             var action = NewMappingBuilder.CreateMap<TestA, TestA>();
             
             var a = new TestA() {IntTest = 12};
-            a.TestB = new TestB {StringTest = "Hello world"};
+            a.TestB = new TestB {StringTest = "Hello world", ARef = new TestA() {IntTest = 2, TestB = new TestB(){StringTest = "ululu"}}};
 
-            var b = new TestA {TestB = new TestB()};
+            var b = new TestA();
 
             action(a, b);
         }
@@ -33,6 +29,8 @@ namespace Tests
         private class TestB
         {
             public string StringTest { get; set; }
+
+            public TestA ARef { get; set; }
         }
     }
 }
