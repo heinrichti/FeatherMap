@@ -22,7 +22,10 @@ namespace FeatherMap.New
                     mapResult.MappingFunc(source, target, referenceTracker);
                 };
 
-            return (source, target) => mapResult.MappingFunc(source, target, null);
+            Func<Action<TSource, TTarget, ReferenceTracker>, Action<TSource, TTarget>> f =
+                mappingAction => (s1, s2) => mappingAction(s1, s2, null);
+
+            return f(mapResult.MappingFunc);
         }
 
         private static ComplexMapResult<TSource, TTarget> FullAuto<TSource, TTarget>(
@@ -64,27 +67,24 @@ namespace FeatherMap.New
                     if (!targetProperty.CanWrite)
                         continue;
 
-                    if (!sourceProperty.PropertyType.IsPrimitive && !(sourceProperty.PropertyType == typeof(string)))
+                    if (sourceProperty.PropertyType.IsPrimitive || sourceProperty.PropertyType == typeof(string) || sourceProperty.PropertyType.IsValueType)
                     {
-                        var createMapFunc = complexPropertyMapMethod.MakeGenericMethod(sourceType, sourceProperty.PropertyType, targetType, targetProperty.PropertyType);
+                        var createMapFunc = simplePropertyMapMethod.MakeGenericMethod(sourceType,
+                            sourceProperty.PropertyType, targetType, targetProperty.PropertyType);
+
+                        var simplePropertyMapping = (Action<TSource, TTarget, ReferenceTracker>) createMapFunc.Invoke(
+                            null,
+                            new object[] {sourceProperty, targetProperty});
+                        actions.Add(simplePropertyMapping);
+                    }
+                    else
+                    {
+                        var createMapFunc = complexPropertyMapMethod.MakeGenericMethod(sourceType,
+                            sourceProperty.PropertyType, targetType, targetProperty.PropertyType);
                         var complexPropertyMapping = (ComplexMapResult<TSource, TTarget>) createMapFunc.Invoke(null,
                             new object[] {sourceProperty, targetProperty, typeMappings});
                         requiresReferenceCheck |= complexPropertyMapping.RequiresReferenceTracking;
                         actions.Add(complexPropertyMapping.MappingFunc);
-                    }
-                    else
-                    {
-                        var createMapFunc = simplePropertyMapMethod.MakeGenericMethod(sourceType, sourceProperty.PropertyType, targetType, targetProperty.PropertyType);
-                        var converterFuncType = typeof(Func<,>).MakeGenericType(sourceProperty.PropertyType,
-                            targetProperty.PropertyType);
-
-                        var mapMethodInfo = typeof(NewMappingBuilder).GetMethod(nameof(Map), BindingFlags.Static | BindingFlags.NonPublic)
-                            .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
-                        var mappingFunc = mapMethodInfo.CreateDelegate(converterFuncType);
-
-                        var simplePropertyMapping = (Action<TSource, TTarget, ReferenceTracker>) createMapFunc.Invoke(null,
-                            new object[] {sourceProperty, targetProperty, mappingFunc});
-                        actions.Add(simplePropertyMapping);
                     }
                 }
             }
@@ -121,14 +121,14 @@ namespace FeatherMap.New
             var mapFunc = mapFuncResult.MappingFunc;
             var constructor = GetDefaultConstructor<TTargetProperty>();
 
-            var getter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
+            var sourcePropertyGetter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
             var setter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
 
             var requiresReferenceTracking = mapFuncResult.RequiresReferenceTracking;
 
             void MappingFuncWithReferenceTracking(TSource source, TTarget target, ReferenceTracker referenceTracker)
             {
-                var sourceValue = getter(source);
+                var sourceValue = sourcePropertyGetter(source);
 
                 if (sourceValue == null)
                 {
@@ -149,31 +149,35 @@ namespace FeatherMap.New
                 }
 
                 var targetProp = constructor();
+
                 referenceTracker?.Add(sourceTargetType, sourceValue, targetProp);
 
                 setter(target, targetProp);
                 mapFunc(sourceValue, targetProp, referenceTracker);
             }
 
-            void MappingFuncWithoutReferenceTracking(TSource source, TTarget target, ReferenceTracker referenceTracker)
-            {
-                var sourceValue = getter(source);
-
-                if (sourceValue == null)
+            Action<TSource, TTarget, ReferenceTracker> MappingWithoutReferenceTracking(Func<TSource, TSourceProperty> sourceGetter, Action<TTarget, TTargetProperty> targetSetter, Func<TTargetProperty> targetConstructor, Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
+                (source, target, referenceTracker) =>
                 {
-                    setter(target, default);
-                    return;
-                }
+                    var sourceValue = sourceGetter(source);
 
-                var targetProp = constructor();
-                setter(target, targetProp);
-                mapFunc(sourceValue, targetProp, referenceTracker);
-            }
+                    if (sourceValue == null)
+                    {
+                        targetSetter(target, default);
+                    }
+
+                    var targetProp = targetConstructor();
+
+                    targetSetter(target, targetProp);
+                    mappingFunc(sourceValue, targetProp, referenceTracker);
+                };
 
             if (requiresReferenceTracking)
                 return new ComplexMapResult<TSource, TTarget>(MappingFuncWithReferenceTracking, true);
 
-            return new ComplexMapResult<TSource, TTarget>(MappingFuncWithoutReferenceTracking, false);
+            return new ComplexMapResult<TSource, TTarget>(
+                MappingWithoutReferenceTracking(sourcePropertyGetter, setter, constructor, mapFunc), 
+                false);
         }
 
         private static Func<T> GetDefaultConstructor<T>()
@@ -185,13 +189,23 @@ namespace FeatherMap.New
 
         private static Action<TSource, TTarget, ReferenceTracker> CreateSimplePropertyMap<TSource, TSourceProperty, TTarget, TTargetProperty>(
             PropertyInfo sourceProperty, 
-            PropertyInfo targetProperty,
-            Func<TSourceProperty, TTargetProperty> converterFunc)
+            PropertyInfo targetProperty)
         {
             var getter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
             var setter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
 
-            return (source, target, referenceTracker) => setter(target, converterFunc(getter(source)));
+            if (typeof(TSourceProperty) != typeof(TTargetProperty))
+            {
+                throw new ArgumentException("Different Property-Types and no converter specified");
+            }
+
+            var identityPropertyConverter = IdentityPropertyConverter<TSourceProperty>.Instance as IPropertyConverter<TSourceProperty, TTargetProperty>;
+
+            Action<TSource, TTarget, ReferenceTracker> Func(Func<TSource, TSourceProperty> sourceGetter,
+                Action<TTarget, TTargetProperty> propertySetter, Func<TSourceProperty, TTargetProperty> convert) =>
+                (source, target, _) => propertySetter(target, convert(sourceGetter(source)));
+
+            return Func(getter, setter, identityPropertyConverter.Convert);
         }
     }
 }

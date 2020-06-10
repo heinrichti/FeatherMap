@@ -19,7 +19,7 @@ namespace FeatherMap
                 }
 
                 if (_propertyConverter == null)
-                    return (IPropertyConverter<TSourceProperty, TTargetProperty>)new EmptyPropertyConverter<TSourceProperty>();
+                    return (IPropertyConverter<TSourceProperty, TTargetProperty>)EmptyPropertyConverter<TSourceProperty>.Instance;
 
                 return _propertyConverter;
             }

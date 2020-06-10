@@ -39,7 +39,8 @@ namespace BenchmarkCore
             var person = new Person()
                 {Address = new Address() {Street = "Testavenue"}, FirstName = "Tim", LastName = "User", Id = _guid};
 
-            _personMappingNew(person, new Person());
+            var b = new Person();
+            _personMappingNew(person, b);
         }
     }
 }
