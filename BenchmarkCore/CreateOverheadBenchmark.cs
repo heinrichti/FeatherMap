@@ -29,7 +29,7 @@ namespace BenchmarkCore
         [Benchmark]
         public void FeatherMapBenchmark()
         {
-            var map = NewMappingBuilder.CreateMap<A, A>();
+            var map = NewMappingBuilder.Auto<A, A>();
             map(new A(), new A());
         }
 

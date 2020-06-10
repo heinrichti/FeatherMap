@@ -8,7 +8,7 @@ namespace FeatherMap.New
 {
     public class NewMappingBuilder
     {
-        public static Action<TSource, TTarget> CreateMap<TSource, TTarget>()
+        public static Action<TSource, TTarget> Auto<TSource, TTarget>()
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
@@ -152,7 +152,7 @@ namespace FeatherMap.New
 
                     var targetProp = targetConstructor();
 
-                    referenceTracker?.Add(sourceTargetType, targetProp);
+                    //referenceTracker?.Add(sourceTargetType, targetProp);
 
                     targetSetter(target, targetProp);
                     mappingFunc(sourceValue, targetProp, referenceTracker);

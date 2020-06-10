@@ -20,7 +20,7 @@ namespace BenchmarkCore
             _personMapping = Mapping<Person, Person>.Auto(cfg => 
                 cfg.Bind(x => x.Address, x => x.Address, config => config.UseMapping(addressMapping)));
 
-            _personMappingNew = NewMappingBuilder.CreateMap<Person, Person>();
+            _personMappingNew = NewMappingBuilder.Auto<Person, Person>();
             _guid = Guid.NewGuid();
         }
 

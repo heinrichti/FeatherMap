@@ -6,6 +6,7 @@ using System.Collections.Specialized;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Configs;
 using FeatherMap;
+using FeatherMap.New;
 
 namespace BenchmarkCore
 {
@@ -33,87 +34,104 @@ namespace BenchmarkCore
             //}
 
 
+            //var trackingBenchmark = new ReferenceTrackingBenchmark();
+            //trackingBenchmark.Setup();
+            //trackingBenchmark.FeatherMapNew();
+
             //BenchmarkRunner.Run<Program>();
+            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
             //BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
-            BenchmarkRunner.Run<CreateOverheadBenchmark>();
+            //BenchmarkRunner.Run<CreateOverheadBenchmark>();
         }
 
         private Person _personA;
         private Person _personB;
         private AutoMapper.IMapper _autoMapper;
+        private Action<Person, Person> _newMapping;
 
-        //[GlobalSetup]
-        //public void Setup()
-        //{
-        //    _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
-        //    _personB = new Person();
+        [GlobalSetup]
+        public void Setup()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
 
-        //    var adressMapping = Mapping<Address, Address>.Auto();
-        //    Mapper.Register(Mapping<Person, Person>.Auto(cfg =>
-        //        cfg.Direction(Direction.OneWay)
-        //            .Bind(x => x.Address, person => person.Address, config => config.UseMapping(adressMapping))));
+            var adressMapping = Mapping<Address, Address>.Auto();
+            Mapper.Register(Mapping<Person, Person>.Auto(cfg =>
+                cfg.Direction(Direction.OneWay)
+                    .Bind(x => x.Address, person => person.Address, config => config.UseMapping(adressMapping))));
 
-        //    _autoMapper = new AutoMapper.MapperConfiguration(cfg =>
-        //    {
-        //        cfg.CreateMap<Address, Address>();
-        //        cfg.CreateMap<Person, Person>();
-        //    }).CreateMapper();
+            _autoMapper = new AutoMapper.MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<Address, Address>();
+                cfg.CreateMap<Person, Person>();
+            }).CreateMapper();
 
-        //    TinyMapper.Bind<Person, Person>();
+            TinyMapper.Bind<Person, Person>();
 
-        //    ExpressMapper.Mapper.Register<Person, Person>();
-        //}
+            ExpressMapper.Mapper.Register<Person, Person>();
 
-        //[Benchmark]
-        //public void TinyMapperBenchmark()
-        //{
-        //    _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
-        //    _personB = new Person();
+            _newMapping = NewMappingBuilder.Auto<Person, Person>();
+        }
 
-        //    TinyMapper.Map(_personA, _personB);
-        //}
+        [Benchmark(Baseline = true)]
+        public void New()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
 
-        //[Benchmark]
-        //public void AutoMapperBenchmark()
-        //{
-        //    _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
-        //    _personB = new Person();
+            _newMapping(_personA, _personB);
+        }
 
-        //    _autoMapper.Map(_personA, _personB);
-        //}
+        [Benchmark]
+        public void TinyMapperBenchmark()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
 
-        //[Benchmark]
-        //public void FeatherMapBenchmark()
-        //{
-        //    _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
-        //    _personB = new Person();
+            TinyMapper.Map(_personA, _personB);
+        }
 
-        //    Mapper.MapToTarget(_personA, _personB);
-        //}
+        [Benchmark]
+        public void AutoMapperBenchmark()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
 
-        //[Benchmark]
-        //public void ExpressMapperBenchmark()
-        //{
-        //    _personA = new Person {Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address {Street = "Testavenue"}};
-        //    _personB = new Person();
+            _autoMapper.Map(_personA, _personB);
+        }
 
-        //    ExpressMapper.Mapper.Map(_personA, _personB);
-        //}
+        [Benchmark]
+        public void FeatherMapBenchmark()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
 
-        //[Benchmark]
-        //public void Handwritten()
-        //{
-        //    _personB.Id = _personA.Id;
-        //    _personB.FirstName = _personA.FirstName;
-        //    _personB.LastName = _personA.LastName;
-        //    Address adr = _personB.Address;
-        //    if (adr == null)
-        //        adr = _personB.Address = new Address();
+            Mapper.MapToTarget(_personA, _personB);
+        }
 
-        //    adr.Street = _personA.Address.Street;
-        //}
+        [Benchmark]
+        public void ExpressMapperBenchmark()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
+
+            ExpressMapper.Mapper.Map(_personA, _personB);
+        }
+
+        [Benchmark]
+        public void Handwritten()
+        {
+            _personB.Id = _personA.Id;
+            _personB.FirstName = _personA.FirstName;
+            _personB.LastName = _personA.LastName;
+            Address adr = _personB.Address;
+            if (adr == null)
+                adr = _personB.Address = new Address();
+
+            adr.Street = _personA.Address.Street;
+        }
     }
 }

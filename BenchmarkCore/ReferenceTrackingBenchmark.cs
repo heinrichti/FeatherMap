@@ -19,10 +19,10 @@ namespace BenchmarkCore
         {
             _autoMapper = new Mapper(new MapperConfiguration(cfg =>
             {
-                cfg.CreateMap<A, A>().PreserveReferences();
+                cfg.CreateMap<A, A>(); //.PreserveReferences();
             }));
 
-            _featherMapNew = NewMappingBuilder.CreateMap<A, A>();
+            _featherMapNew = NewMappingBuilder.Auto<A, A>();
             TinyMapper.Bind<A, A>();
             ExpressMapper.Mapper.Register<A, A>();
         }
@@ -55,7 +55,7 @@ namespace BenchmarkCore
         private static A GetA()
         {
             var a = new A {Int = 1};
-            a.B = new B {Int = 2, C = new C() {A = a, Int = 3}};
+            a.B = new B {Int = 2, C = new C() {A = new A(), Int = 3}};
             return a;
         }
 
