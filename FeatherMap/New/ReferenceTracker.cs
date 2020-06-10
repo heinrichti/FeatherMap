@@ -1,20 +1,25 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Specialized;
 
 namespace FeatherMap.New
 {
     internal class ReferenceTracker
     {
-        private readonly Dictionary<TargetTypeSourceObject, object> _references = new Dictionary<TargetTypeSourceObject, object>();
+        private readonly HybridDictionary _references = new HybridDictionary();
 
-        public bool TryGet(TargetTypeSourceObject key, out object alreadyMappedObject) => 
-            _references.TryGetValue(key, out alreadyMappedObject);
-
-        public void Add(TargetTypeSourceObject key, object targetObj)
+        public bool TryGet(TargetTypeSourceObject key, out object alreadyMappedObject)
         {
-            if (!_references.ContainsKey(key))
+            var reference = _references[key];
+            if (reference == null)
             {
-                _references.Add(key, targetObj);
+                alreadyMappedObject = null;
+                return false;
             }
+
+            alreadyMappedObject = reference;
+            return true;
         }
+
+        public void Add(TargetTypeSourceObject key, object targetObj) => _references[key] = targetObj;
     }
 }

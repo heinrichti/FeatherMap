@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using AutoMapper;
 using BenchmarkDotNet.Attributes;
 using FeatherMap.New;
 using Nelibur.ObjectMapper;
+using Mapper = AutoMapper.Mapper;
 
 namespace BenchmarkCore
 {
@@ -49,6 +48,7 @@ namespace BenchmarkCore
         {
             var a = GetA();
             var b = new A();
+
             _featherMapNew(a, b);
         }
 

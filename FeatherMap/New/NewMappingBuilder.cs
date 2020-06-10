@@ -126,34 +126,11 @@ namespace FeatherMap.New
 
             var requiresReferenceTracking = mapFuncResult.RequiresReferenceTracking;
 
-            void MappingFuncWithReferenceTracking(TSource source, TTarget target, ReferenceTracker referenceTracker)
-            {
-                var sourceValue = sourcePropertyGetter(source);
-
-                if (sourceValue == null)
-                {
-                    setter(target, default);
-                    return;
-                }
-
-                var sourceTargetType = new TargetTypeSourceObject(typeof(TTargetProperty), sourceValue);
-
-                object alreadyMappedObject = null;
-                if (referenceTracker?.TryGet(sourceTargetType, out alreadyMappedObject) ?? false)
-                {
-                    setter(target, (TTargetProperty) alreadyMappedObject);
-                    return;
-                }
-
-                var targetProp = constructor();
-
-                referenceTracker?.Add(sourceTargetType, targetProp);
-
-                setter(target, targetProp);
-                mapFunc(sourceValue, targetProp, referenceTracker);
-            }
-
-            Action<TSource, TTarget, ReferenceTracker> MappingWithoutReferenceTracking(Func<TSource, TSourceProperty> sourceGetter, Action<TTarget, TTargetProperty> targetSetter, Func<TTargetProperty> targetConstructor, Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
+            Action<TSource, TTarget, ReferenceTracker> MappingFuncWithReferenceTracking(
+                Func<TSource, TSourceProperty> sourceGetter,
+                Action<TTarget, TTargetProperty> targetSetter,
+                Func<TTargetProperty> targetConstructor,
+                Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
                 (source, target, referenceTracker) =>
                 {
                     var sourceValue = sourceGetter(source);
@@ -161,6 +138,39 @@ namespace FeatherMap.New
                     if (sourceValue == null)
                     {
                         targetSetter(target, default);
+                        return;
+                    }
+
+                    var sourceTargetType = new TargetTypeSourceObject(typeof(TTargetProperty), sourceValue);
+
+                    object alreadyMappedObject = null;
+                    if (referenceTracker?.TryGet(sourceTargetType, out alreadyMappedObject) ?? false)
+                    {
+                        targetSetter(target, (TTargetProperty) alreadyMappedObject);
+                        return;
+                    }
+
+                    var targetProp = targetConstructor();
+
+                    referenceTracker?.Add(sourceTargetType, targetProp);
+
+                    targetSetter(target, targetProp);
+                    mappingFunc(sourceValue, targetProp, referenceTracker);
+                };
+
+            Action<TSource, TTarget, ReferenceTracker> MappingWithoutReferenceTracking(
+                Func<TSource, TSourceProperty> sourceGetter, 
+                Action<TTarget, TTargetProperty> targetSetter, 
+                Func<TTargetProperty> targetConstructor, 
+                Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
+                (source, target, referenceTracker) =>
+                {
+                    var sourceValue = sourceGetter(source);
+
+                    if (sourceValue == null)
+                    {
+                        targetSetter(target, default);
+                        return;
                     }
 
                     var targetProp = targetConstructor();
@@ -171,7 +181,8 @@ namespace FeatherMap.New
 
             if (requiresReferenceTracking.Any(x => 
                 x.Source == sourceProperty.PropertyType && x.Target == targetProperty.PropertyType))
-                return new ComplexMapResult<TSource, TTarget>(MappingFuncWithReferenceTracking, requiresReferenceTracking);
+                return new ComplexMapResult<TSource, TTarget>(MappingFuncWithReferenceTracking(sourcePropertyGetter, setter, constructor, mapFunc), 
+                    requiresReferenceTracking);
 
             return new ComplexMapResult<TSource, TTarget>(
                 MappingWithoutReferenceTracking(sourcePropertyGetter, setter, constructor, mapFunc), 

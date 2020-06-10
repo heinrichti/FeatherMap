@@ -2,7 +2,9 @@
 using BenchmarkDotNet.Running;
 using Nelibur.ObjectMapper;
 using System;
+using System.Collections.Specialized;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Configs;
 using FeatherMap;
 
 namespace BenchmarkCore
@@ -11,25 +13,32 @@ namespace BenchmarkCore
     [MemoryDiagnoser]
     public class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             //var newVsOld = new NewVsOld();
             //newVsOld.Setup();
             //newVsOld.Old();
             //newVsOld.New();
 
-            var referenceTrackingBenchmark = new ReferenceTrackingBenchmark();
-            referenceTrackingBenchmark.Setup();
-            referenceTrackingBenchmark.AutoMapper();
+            var referenceTrackingBenchmark = new CreateOverheadBenchmark();
+            referenceTrackingBenchmark.FeatherMapBenchmark();
+
+            //await Task.Delay(1000);
+
+            //referenceTrackingBenchmark.AutoMapper();
             //referenceTrackingBenchmark.ExpressMapperBenchmark();
-            referenceTrackingBenchmark.FeatherMapNew();
+            //for (int i = 0; i < 100000000; i++)
+            //{
+            //    referenceTrackingBenchmark.FeatherMapNew();
+            //}
+
 
             //BenchmarkRunner.Run<Program>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
             //BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
-            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            BenchmarkRunner.Run<CreateOverheadBenchmark>();
         }
 
         private Person _personA;
