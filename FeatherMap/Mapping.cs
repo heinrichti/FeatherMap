@@ -45,5 +45,7 @@ namespace FeatherMap
         public void MapToTarget(TSource source, TTarget target) => _sourceToTargetFunc(source, target);
 
         public void MapToSource(TSource source, TTarget target) => _targetToSourceFunc(source, target);
+
+        //public static void CompleteAuto() => MappingBuilder<TSource, TTarget>.CompleteAuto();
     }
 }

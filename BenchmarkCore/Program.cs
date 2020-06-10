@@ -26,9 +26,10 @@ namespace BenchmarkCore
             //program.AutoMapperBenchmark();
             //program.TinyMapperBenchmark();
 
-            BenchmarkRunner.Run<Program>();
+            //BenchmarkRunner.Run<Program>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
+            BenchmarkRunner.Run<NewVsOld>();
         }
 
         private Person _personA;

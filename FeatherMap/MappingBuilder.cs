@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 
 namespace FeatherMap
 {
@@ -101,7 +100,8 @@ namespace FeatherMap
 
         private static Action<TFrom, TTo> CreateSimplePropertyMapping<TFrom, TTo, TSourceProperty, TTargetProperty>(
             PropertyInfo fromPropertyInfo,
-            Func<TSourceProperty, TTargetProperty> propertyConverter, Action<TTo, TTargetProperty> targetSetter)
+            Func<TSourceProperty, TTargetProperty> propertyConverter, 
+            Action<TTo, TTargetProperty> targetSetter)
         {
             var sourceGetter = PropertyAccess.CreateGetter<TFrom, TSourceProperty>(fromPropertyInfo);
             return (source, target) => targetSetter(target, propertyConverter(sourceGetter(source)));
@@ -163,7 +163,7 @@ namespace FeatherMap
                 mappingAction(sourceGetter(source), targetProperty);
             };
         }
-
+        
         public static Mapping<TSource, TTarget> Auto(Func<AutoPropertyConfig<TSource, TTarget>, AutoPropertyConfig<TSource, TTarget>> cfgFunc)
         {
             var sourceType = typeof(TSource);
@@ -176,7 +176,7 @@ namespace FeatherMap
             var autoConfig = cfgFunc(new AutoPropertyConfig<TSource, TTarget>());
             var mappingBuilder = new MappingBuilder<TSource, TTarget>();
             var mappingBuilderType = typeof(MappingBuilder<TSource, TTarget>);
-            var nonGenericBindMethod = mappingBuilderType.GetMethod(nameof(MappingBuilder<TSource, TTarget>.Bind), BindingFlags.NonPublic | BindingFlags.Instance);
+            var nonGenericBindMethod = mappingBuilderType.GetMethod(nameof(Bind), BindingFlags.NonPublic | BindingFlags.Instance);
 
             var properyConfigType = typeof(PropertyConfig<,,,>);
 
