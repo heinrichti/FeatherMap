@@ -11,7 +11,7 @@ namespace BenchmarkCore
     public class NewVsOld
     {
         private Mapping<Person, Person> _personMapping;
-        private Action<Person, Person> _personMappingNew;
+        private NewMapping<Person, Person> _personMappingNew;
         private Guid _guid;
 
         [GlobalSetup]
@@ -21,7 +21,7 @@ namespace BenchmarkCore
             _personMapping = Mapping<Person, Person>.Auto(cfg => 
                 cfg.Bind(x => x.Address, x => x.Address, config => config.UseMapping(addressMapping)));
 
-            _personMappingNew = NewMapping.Auto<Person, Person>();
+            _personMappingNew = NewMapping<Person, Person>.Auto();
             _guid = Guid.NewGuid();
         }
 
@@ -41,7 +41,7 @@ namespace BenchmarkCore
                 {Address = new Address() {Street = "Testavenue"}, FirstName = "Tim", LastName = "User", Id = _guid};
 
             var b = new Person();
-            _personMappingNew(person, b);
+            _personMappingNew.Map(person, b);
         }
     }
 }

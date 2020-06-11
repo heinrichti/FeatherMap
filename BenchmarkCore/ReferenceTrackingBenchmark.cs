@@ -7,12 +7,12 @@ using Mapper = AutoMapper.Mapper;
 
 namespace BenchmarkCore
 {
-    [SimpleJob]
+    [SimpleJob(warmupCount:3, targetCount:3)]
     [MemoryDiagnoser]
     public class ReferenceTrackingBenchmark
     {
         private Mapper _autoMapper;
-        private Action<A, A> _featherMapNew;
+        private NewMapping<A, A> _featherMapNew;
 
         [GlobalSetup]
         public void Setup()
@@ -22,7 +22,7 @@ namespace BenchmarkCore
                 cfg.CreateMap<A, A>(); //.PreserveReferences();
             }));
 
-            _featherMapNew = NewMapping.Auto<A, A>();
+            _featherMapNew = NewMapping<A, A>.Auto();
             TinyMapper.Bind<A, A>();
             ExpressMapper.Mapper.Register<A, A>();
         }
@@ -49,7 +49,7 @@ namespace BenchmarkCore
             var a = GetA();
             var b = new A();
 
-            _featherMapNew(a, b);
+            _featherMapNew.Map(a, b);
         }
 
         private static A GetA()

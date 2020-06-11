@@ -48,10 +48,10 @@ namespace BenchmarkCore
 
 
             //BenchmarkRunner.Run<Program>();
-            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
-            BenchmarkRunner.Run<NewVsOld>();
+            //BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
             //BenchmarkRunner.Run<CreateOverheadBenchmark>();
         }
@@ -59,7 +59,7 @@ namespace BenchmarkCore
         private Person _personA;
         private Person _personB;
         private AutoMapper.IMapper _autoMapper;
-        private Action<Person, Person> _newMapping;
+        private NewMapping<Person, Person> _newMapping;
 
         [GlobalSetup]
         public void Setup()
@@ -82,7 +82,7 @@ namespace BenchmarkCore
 
             ExpressMapper.Mapper.Register<Person, Person>();
 
-            _newMapping = NewMapping.Auto<Person, Person>();
+            _newMapping = NewMapping<Person, Person>.Auto();
         }
 
         [Benchmark(Baseline = true)]
@@ -91,7 +91,7 @@ namespace BenchmarkCore
             _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
             _personB = new Person();
 
-            _newMapping(_personA, _personB);
+            _newMapping.Map(_personA, _personB);
         }
 
         [Benchmark]

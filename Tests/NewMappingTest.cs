@@ -18,7 +18,7 @@ namespace Tests
             //    .Bind(a => a.B, a => a.B, config => config.CreateMap(bMap =>
             //        bMap.Bind(b => b.IdString, b => b.IdString, cfg => cfg.Convert(s => s + "321")))));
 
-            var mapping = NewMapping.Auto<A, A>(x => x
+            var mapping = NewMapping<A, A>.Auto(x => x
                 .Bind(a => a.TestA, a => a.TestA, x => x.Convert(i => i + 25)));
 
             var a1 = new A();
@@ -28,7 +28,7 @@ namespace Tests
             a1.B.A = a1;
 
             var a2 = new A();
-            mapping(a1, a2);
+            mapping.Map(a1, a2);
         }
 
         private class A
