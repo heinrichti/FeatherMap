@@ -2,52 +2,36 @@
 
 namespace FeatherMap
 {
-    public class PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty>
+    public class PropertyConfig<TSourceProperty, TTargetProperty>
     {
-        private IPropertyConverter<TSourceProperty, TTargetProperty> _propertyConverter;
-        private Mapping<TSourceProperty, TTargetProperty> _mapping;
+        private IPropertyConverter<TSourceProperty, TTargetProperty> _converterer;
 
-        internal Direction Direction { get; private set; } = Direction.TwoWay;
-
-        internal IPropertyConverter<TSourceProperty, TTargetProperty> PropertyConverter
+        internal IPropertyConverter<TSourceProperty, TTargetProperty> Converterer
         {
-            get
-            {
-                if (typeof(TSourceProperty) != typeof(TTargetProperty) && _propertyConverter == null)
-                {
-                    throw new ArgumentException("Different Property-Types and no converter specified");
-                }
-
-                if (_propertyConverter == null)
-                    return (IPropertyConverter<TSourceProperty, TTargetProperty>)new EmptyPropertyConverter<TSourceProperty>();
-
-                return _propertyConverter;
-            }
+            get => _converterer ?? IdentityPropertyConverter<TSourceProperty>.Instance as IPropertyConverter<TSourceProperty, TTargetProperty>;
+            private set => _converterer = value;
         }
 
-        internal Mapping<TSourceProperty, TTargetProperty> Mapping => _mapping;
+        internal MappingConfiguration<TSourceProperty, TTargetProperty> MappingConfiguration { get; private set; }
 
-        public PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> MappingDirection(Direction direction)
+        public PropertyConfig<TSourceProperty, TTargetProperty> Convert(
+            IPropertyConverter<TSourceProperty, TTargetProperty> converter)
         {
-            Direction = direction;
+            Converterer = converter;
             return this;
         }
 
-        public PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> UseConverter(IPropertyConverter<TSourceProperty, TTargetProperty> converter)
+        public PropertyConfig<TSourceProperty, TTargetProperty> Convert(
+            Func<TSourceProperty, TTargetProperty> convertFunc)
         {
-            if(_mapping != null)
-                throw new ArgumentException("Converter cannot be used together with custom mapping.");
-
-            _propertyConverter = converter;
+            Converterer = new DelegatePropertyConverter<TSourceProperty, TTargetProperty>(convertFunc);
             return this;
         }
 
-        public PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> UseMapping(Mapping<TSourceProperty, TTargetProperty> mapping)
+        public PropertyConfig<TSourceProperty, TTargetProperty> CreateMap(
+            Func<MappingConfiguration<TSourceProperty, TTargetProperty>, MappingConfiguration<TSourceProperty, TTargetProperty>> cfgAction)
         {
-            if(_propertyConverter != null)
-                throw new ArgumentException("Mapping cannot be used together with custom converter");
-
-            _mapping = mapping;
+            MappingConfiguration = cfgAction(new MappingConfiguration<TSourceProperty, TTargetProperty>());
             return this;
         }
     }

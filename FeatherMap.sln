@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FeatherMap", "FeatherMap\Fe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{60D8909D-56B8-4D02-A3DA-93BD21154ECF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenchmarkFramework", "BenchmarkFramework\BenchmarkFramework.csproj", "{26A586BC-85CA-4C3B-8558-C2BB94C60C14}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkCore", "BenchmarkCore\BenchmarkCore.csproj", "{A6EE57E0-A541-4B3E-B536-7C0FC55BCD4D}"
 EndProject
 Global
@@ -25,10 +23,6 @@ Global
 		{60D8909D-56B8-4D02-A3DA-93BD21154ECF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60D8909D-56B8-4D02-A3DA-93BD21154ECF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60D8909D-56B8-4D02-A3DA-93BD21154ECF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{26A586BC-85CA-4C3B-8558-C2BB94C60C14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{26A586BC-85CA-4C3B-8558-C2BB94C60C14}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{26A586BC-85CA-4C3B-8558-C2BB94C60C14}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{26A586BC-85CA-4C3B-8558-C2BB94C60C14}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A6EE57E0-A541-4B3E-B536-7C0FC55BCD4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A6EE57E0-A541-4B3E-B536-7C0FC55BCD4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6EE57E0-A541-4B3E-B536-7C0FC55BCD4D}.Release|Any CPU.ActiveCfg = Release|Any CPU

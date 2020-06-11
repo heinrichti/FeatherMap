@@ -7,15 +7,8 @@
             MapLookup<TSource, TTarget>.Instance = mappingConfiguration;
         }
 
-        public static void MapToSource<TSource, TTarget>(TSource source, TTarget target)
-        {
-            MapLookup<TSource, TTarget>.Instance.MapToSource(source, target);
-        }
-
-        public static void MapToTarget<TSource, TTarget>(TSource source, TTarget target)
-        {
-            MapLookup<TSource, TTarget>.Instance.MapToTarget(source, target);
-        }
+        public static void Map<TSource, TTarget>(TSource source, TTarget target)
+            => MapLookup<TSource, TTarget>.Instance.Map(source, target);
 
         private static class MapLookup<TSource, TTarget>
         {

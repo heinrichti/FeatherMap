@@ -1,216 +1,268 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 
 namespace FeatherMap
 {
-    internal class MappingBuilder<TSource, TTarget> : IMappingBuilder<TSource, TTarget>
+    internal class MappingBuilder
     {
-        private readonly List<(Action<TSource, TTarget> SourceToTarget, Action<TSource, TTarget> TargetToSource)> _mappedProperties = 
-            new List<(Action<TSource, TTarget> SourceToTarget, Action<TSource, TTarget> TargetToSource)>();
-
-        public Mapping<TSource, TTarget> Build()
+        public static Action<TSource, TTarget> Create<TSource, TTarget>(
+            Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgAction)
         {
-            Action<TSource, TTarget> sourceToTarget = (source, target) => {};
-            Action<TSource, TTarget> targetToSource = (source, target) => {};
+            var mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
+            mappingConfiguration = cfgAction(mappingConfiguration);
+            var result = CreateMap(typeof(TSource), typeof(TTarget), mappingConfiguration, new Dictionary<SourceToTargetMap, Delegate>());
 
-            using (var enumerator = _mappedProperties.GetEnumerator())
+            if (result.ReferenceCheckList.Any())
             {
-                if (enumerator.MoveNext())
-                {
-                    sourceToTarget = enumerator.Current.SourceToTarget;
-                    targetToSource = enumerator.Current.TargetToSource;
-                }
+                Action<TSource, TTarget> ReferenceTrackedMap(Action<TSource, TTarget, ReferenceTracker> mappingFunc) =>
+                    (source, target) =>
+                    {
+                        var referenceTracker = new ReferenceTracker();
+                        referenceTracker.Add(new TargetTypeSourceObject(typeof(TTarget), source), target);
+                        mappingFunc(source, target, referenceTracker);
+                    };
 
-                while (enumerator.MoveNext())
+                return ReferenceTrackedMap(result.MappingFunc);
+            }
+
+            Func<Action<TSource, TTarget, ReferenceTracker>, Action<TSource, TTarget>> f =
+                mappingAction => (s1, s2) => mappingAction(s1, s2, null);
+
+            return f(result.MappingFunc);
+        }
+
+        private static ComplexMapResult<TSource, TTarget> CreateMap<TSource, TTarget>(
+            Type sourceType, Type targetType,
+            MappingConfiguration<TSource, TTarget> config,
+            Dictionary<SourceToTargetMap, Delegate> typeMappings)
+        {
+            if (config.ReferenceTrackingEnabled)
+            {
+                if (typeMappings.TryGetValue(new SourceToTargetMap(sourceType, targetType), out var func))
                 {
-                    sourceToTarget += enumerator.Current.SourceToTarget;
-                    targetToSource += enumerator.Current.TargetToSource;
+                    Action<TSource, TTarget, ReferenceTracker> MapFunc(Delegate d) =>
+                        (source, target, referenceTracker) =>
+                        {
+                            var value = (Func<Delegate>)func;
+                            var action = (Action<TSource, TTarget, ReferenceTracker>)value();
+                            action(source, target, referenceTracker);
+                        };
+
+                    return new ComplexMapResult<TSource, TTarget>(MapFunc(func),
+                        new List<ReferenceTrackingRequired> {new ReferenceTrackingRequired(sourceType, targetType)});
                 }
             }
 
-            return new Mapping<TSource, TTarget>(sourceToTarget, targetToSource);
-        }
+            var simplePropertyMapMethod = typeof(MappingBuilder).GetMethod(nameof(CreateSimplePropertyMap), BindingFlags.Static | BindingFlags.NonPublic);
+            var complexPropertyMapMethod = typeof(MappingBuilder).GetMethod(nameof(CreateComplexMap), BindingFlags.Static | BindingFlags.NonPublic);
 
-        internal IMappingBuilder<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
-            PropertyInfo sourcePropertyInfo,
-            PropertyInfo targetPropertyInfo,
-            PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> cfg)
-        {
-            Action<TSource, TTarget> sourceToTargetAction = GetSourceToTargetAction(sourcePropertyInfo, targetPropertyInfo, cfg);
-            Action<TSource, TTarget> targetToSourceAction = GetTargetToSourceAction(sourcePropertyInfo, targetPropertyInfo, cfg);
+            Action<TSource, TTarget, ReferenceTracker> result = (source, target, referenceTracker) => { };
+            Delegate ResultingMap() => result;
+            typeMappings.Add(new SourceToTargetMap(sourceType, targetType), (Func<Delegate>) ResultingMap);
 
-            _mappedProperties.Add((sourceToTargetAction, targetToSourceAction));
+            var referenceCheckList = new List<ReferenceTrackingRequired>();
+            var actions = new List<Action<TSource, TTarget, ReferenceTracker>>();
 
-            return this;
-        }
-
-        public IMappingBuilder<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
-            Expression<Func<TSource, TSourceProperty>> sourceProperty,
-            Expression<Func<TTarget, TTargetProperty>> targetProperty)
-        {
-            return Bind(sourceProperty, targetProperty, cfg => cfg);
-        }
-
-        public IMappingBuilder<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
-            Expression<Func<TSource, TSourceProperty>> sourceProperty,
-            Expression<Func<TTarget, TTargetProperty>> targetProperty,
-            Func<PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty>, PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty>> configFunc)
-        {
-            var config = configFunc(new PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty>());
-
-            var sourceMember = (MemberExpression)sourceProperty.Body;
-            var targetMember = (MemberExpression)targetProperty.Body;
-
-            var sourcePropertyInfo = sourceMember.Member.DeclaringType.GetProperty(sourceMember.Member.Name);
-            var targetPropertyInfo = targetMember.Member.DeclaringType.GetProperty(targetMember.Member.Name);
-            
-            return Bind(sourcePropertyInfo, targetPropertyInfo, config);
-        }
-
-        private static Action<TSource, TTarget> GetSourceToTargetAction<TSourceProperty, TTargetProperty>(
-            PropertyInfo sourcePropertyInfo, 
-            PropertyInfo targetPropertyInfo, 
-            PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> config)
-        {
-            if (config.Direction == Direction.TwoWay || config.Direction == Direction.OneWay)
+            foreach (var propertyMap in config.PropertyMaps)
             {
-                if (!targetPropertyInfo.CanWrite)
-                    return null;
+                if (propertyMap.HasMappingConfiguration())
+                {
+                    var createMapFunc = complexPropertyMapMethod.MakeGenericMethod(
+                        sourceType, propertyMap.SourcePropertyInfo.PropertyType, 
+                        targetType, propertyMap.TargetPropertyInfo.PropertyType);
+                    var complexPropertyMapping = (ComplexMapResult<TSource, TTarget>) createMapFunc.Invoke(null,
+                        new[] {propertyMap.SourcePropertyInfo, propertyMap.TargetPropertyInfo, typeMappings, propertyMap.ConfigObject});
+                    referenceCheckList.AddRange(complexPropertyMapping.ReferenceCheckList);
+                    actions.Add(complexPropertyMapping.MappingFunc);
 
-                var targetSetter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetPropertyInfo);
-
-                return config.Mapping == null
-                    ? CreateSimplePropertyMapping<TSource, TTarget, TSourceProperty, TTargetProperty>(
-                        sourcePropertyInfo,
-                        config.PropertyConverter.Convert,
-                        targetSetter)
-                    : CreateComplexPropertyMapping<TSource, TTarget, TSourceProperty, TTargetProperty>(
-                        sourcePropertyInfo,
-                        targetPropertyInfo,
-                        targetSetter,
-                        config.Mapping.TargetConstructor,
-                        config.Mapping.MapToTarget);
+                }
+                else
+                {
+                    var mapFuncCreator = simplePropertyMapMethod.MakeGenericMethod(
+                        sourceType, propertyMap.SourcePropertyInfo.PropertyType,
+                        targetType, propertyMap.TargetPropertyInfo.PropertyType);
+                    var map = (Action<TSource, TTarget, ReferenceTracker>)mapFuncCreator.Invoke(null, new[]
+                        {propertyMap.SourcePropertyInfo, propertyMap.TargetPropertyInfo, propertyMap.ConfigObject});
+                    actions.Add(map);
+                }
             }
 
-            return null;
+            result = actions.Aggregate((accumulate, action) => accumulate + action);
+            return new ComplexMapResult<TSource, TTarget>(result, referenceCheckList);
         }
 
-        private static Action<TFrom, TTo> CreateSimplePropertyMapping<TFrom, TTo, TSourceProperty, TTargetProperty>(
-            PropertyInfo fromPropertyInfo,
-            Func<TSourceProperty, TTargetProperty> propertyConverter, Action<TTo, TTargetProperty> targetSetter)
+        public static Action<TSource, TTarget> Auto<TSource, TTarget>(Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgFunc)
         {
-            var sourceGetter = PropertyAccess.CreateGetter<TFrom, TSourceProperty>(fromPropertyInfo);
-            return (source, target) => targetSetter(target, propertyConverter(sourceGetter(source)));
+            var cfg = new MappingConfiguration<TSource, TTarget>();
+            cfg = cfgFunc(cfg);
+            return Create<TSource, TTarget>(configuration =>
+                AutoConfig(new Dictionary<SourceToTargetMap, object>(), cfg));
         }
 
-        
-
-        private static Action<TSource, TTarget> GetTargetToSourceAction<TSourceProperty, TTargetProperty>(
-            PropertyInfo sourcePropertyInfo, 
-            PropertyInfo targetPropertyInfo,
-            PropertyConfig<TSource, TTarget, TSourceProperty, TTargetProperty> config)
-        {
-            if (config.Direction == Direction.TwoWay || config.Direction == Direction.OneWayToSource)
-            {
-                if (!sourcePropertyInfo.CanWrite)
-                    return null;
-
-                var sourceSetter = PropertyAccess.CreateSetter<TSource, TSourceProperty>(sourcePropertyInfo);
-
-                if (config.Mapping == null)
-                {
-                    return (source, target) => CreateSimplePropertyMapping<TTarget, TSource, TTargetProperty, TSourceProperty>(
-                        targetPropertyInfo,
-                        config.PropertyConverter.ConvertBack,
-                        sourceSetter)(target, source);
-                }
-
-                return (source, target) =>
-                    CreateComplexPropertyMapping<TTarget, TSource, TTargetProperty, TSourceProperty>(
-                        targetPropertyInfo,
-                        sourcePropertyInfo,
-                        sourceSetter,
-                        config.Mapping.SourceConstructor,
-                        (s, t) => config.Mapping.MapToSource(t, s))(target, source);
-            }
-
-            return null;
-        }
-
-        private static Action<TFrom, TTo> CreateComplexPropertyMapping<TFrom, TTo, TSourceProperty, TTargetProperty>(
-            PropertyInfo sourcePropertyInfo,
-            PropertyInfo targetPropertyInfo, 
-            Action<TTo, TTargetProperty> targetSetter,
-            Func<TTargetProperty> targetCreator,
-            Action<TSourceProperty, TTargetProperty> mappingAction)
-        {
-            var sourceGetter = PropertyAccess.CreateGetter<TFrom, TSourceProperty>(sourcePropertyInfo);
-            var targetGetter = PropertyAccess.CreateGetter<TTo, TTargetProperty>(targetPropertyInfo);
-
-            return (source, target) =>
-            {
-                var targetProperty = targetGetter(target);
-                if (targetProperty == null)
-                {
-                    targetProperty = targetCreator();
-                    targetSetter(target, targetProperty);
-                }
-
-                mappingAction(sourceGetter(source), targetProperty);
-            };
-        }
-
-        public static Mapping<TSource, TTarget> Auto(Func<AutoPropertyConfig<TSource, TTarget>, AutoPropertyConfig<TSource, TTarget>> cfgFunc)
+        internal static MappingConfiguration<TSource, TTarget> AutoConfig<TSource, TTarget>(
+            Dictionary<SourceToTargetMap, object> typeConfigs, MappingConfiguration<TSource, TTarget> mappingConfiguration)
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
+
+            if (typeConfigs.TryGetValue(new SourceToTargetMap(sourceType, targetType), out var previousMappingConfig))
+                return (MappingConfiguration<TSource, TTarget>) previousMappingConfig;
+
+            if (mappingConfiguration == null)
+                mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
+
+            typeConfigs.Add(new SourceToTargetMap(sourceType, targetType), mappingConfiguration);
 
             var sourceProperties = sourceType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var targetProperties = targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var targetPropertyDictionary = targetProperties.ToDictionary(x => x.Name, x => x);
 
-            var autoConfig = cfgFunc(new AutoPropertyConfig<TSource, TTarget>());
-            var mappingBuilder = new MappingBuilder<TSource, TTarget>();
-            var mappingBuilderType = typeof(MappingBuilder<TSource, TTarget>);
-            var nonGenericBindMethod = mappingBuilderType.GetMethod(nameof(MappingBuilder<TSource, TTarget>.Bind), BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var properyConfigType = typeof(PropertyConfig<,,,>);
-
-            foreach (var sourceProp in sourceProperties)
+            foreach (var sourceProperty in sourceProperties)
             {
-                if (autoConfig.PropertiesToIgnore.Contains(sourceProp.Name))
+                if (mappingConfiguration.PropertiesToIgnore.Contains(sourceProperty.Name))
                     continue;
 
-                object config = null;
-                string targetPropertyName;
-                if (autoConfig.PropertyConfigs.TryGetValue(sourceProp.Name, out var targetConfig))
+                if (targetPropertyDictionary.TryGetValue(sourceProperty.Name, out var targetProperty))
                 {
-                    targetPropertyName = targetConfig.TargetPropertyName;
-                    config = targetConfig.Config;
-                    
-                }
-                else
-                    targetPropertyName = sourceProp.Name;
+                    if (!targetProperty.CanWrite)
+                        continue;
 
-                if (targetPropertyDictionary.TryGetValue(targetPropertyName, out var targetProp) && sourceProp.PropertyType == targetProp.PropertyType)
-                {
-                    if (config == null)
-                    { 
-                        var genericPropertyConfigType = properyConfigType.MakeGenericType(typeof(TSource), typeof(TTarget), sourceProp.PropertyType, targetProp.PropertyType);
-                        config = genericPropertyConfigType.GetConstructor(Array.Empty<Type>()).Invoke(Array.Empty<object>());
+                    if (sourceProperty.PropertyType.IsPrimitive || sourceProperty.PropertyType == typeof(string) ||
+                        sourceProperty.PropertyType.IsValueType)
+                    {
+                        // TODO evtl gibt es dafür bereits eine config
+                        var bindFunc = mappingConfiguration.GetType().GetMethod("BindInternalWithoutConfig",
+                            BindingFlags.Instance | BindingFlags.NonPublic)
+                            .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
+
+                        bindFunc.Invoke(mappingConfiguration, new object[] {sourceProperty, targetProperty});
                     }
+                    else
+                    {
+                        var bindFunc = typeof(MappingBuilder).GetMethod(nameof(BindComplexConfig),
+                                BindingFlags.Static | BindingFlags.NonPublic)
+                            .MakeGenericMethod(typeof(TSource), typeof(TTarget), sourceProperty.PropertyType, targetProperty.PropertyType);
 
-                    var bindMethod = nonGenericBindMethod.MakeGenericMethod(sourceProp.PropertyType, targetProp.PropertyType);                    
-                    bindMethod.Invoke(mappingBuilder, new object[] { sourceProp, targetProp, config });
+                        bindFunc.Invoke(null, new object[] {sourceProperty, targetProperty, mappingConfiguration, typeConfigs});
+                    }
                 }
             }
 
-            return mappingBuilder.Build();
+            return mappingConfiguration;
         }
 
+        private static void BindComplexConfig<TSource, TTarget, TSourceProperty, TTargetProperty>(
+            PropertyInfo sourceProperty, PropertyInfo targetProperty, 
+            MappingConfiguration<TSource, TTarget> mappingConfiguration,
+            Dictionary<SourceToTargetMap, object> typeMappings)
+        {
+            mappingConfiguration.BindInternal(sourceProperty, targetProperty,
+                new PropertyConfig<TSourceProperty, TTargetProperty>()
+                    .CreateMap(x => 
+                        AutoConfig<TSourceProperty, TTargetProperty>(
+                            typeMappings, 
+                            mappingConfiguration.GetChildConfigOrNew<TSourceProperty, TTargetProperty>(sourceProperty, targetProperty))));
+        }
+
+        private static ComplexMapResult<TSource, TTarget> CreateComplexMap<TSource, TSourceProperty, TTarget, TTargetProperty>(
+            PropertyInfo sourceProperty, 
+            PropertyInfo targetProperty,
+            Dictionary<SourceToTargetMap, Delegate> typeMappings,
+            PropertyConfig<TSourceProperty, TTargetProperty> config)
+            where TSource : class
+            where TTarget : class
+            where TSourceProperty : class
+            where TTargetProperty : class
+        {
+            var createMapFunc = typeof(MappingBuilder).GetMethod(nameof(CreateMap), BindingFlags.Static | BindingFlags.NonPublic)
+                .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
+
+            var mapFuncResult = (ComplexMapResult<TSourceProperty, TTargetProperty>)createMapFunc
+                .Invoke(null, new object[] { sourceProperty.PropertyType, targetProperty.PropertyType, config.MappingConfiguration, typeMappings });
+            var mapFunc = mapFuncResult.MappingFunc;
+            var constructor = PropertyAccess.GetDefaultConstructor<TTargetProperty>();
+
+            var sourcePropertyGetter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
+            var setter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
+
+            var requiresReferenceTracking = mapFuncResult.ReferenceCheckList;
+
+            Action<TSource, TTarget, ReferenceTracker> MappingFuncWithReferenceTracking(
+                Func<TSource, TSourceProperty> sourceGetter,
+                Action<TTarget, TTargetProperty> targetSetter,
+                Func<TTargetProperty> targetConstructor,
+                Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
+                (source, target, referenceTracker) =>
+                {
+                    var sourceValue = sourceGetter(source);
+
+                    if (sourceValue == null)
+                    {
+                        targetSetter(target, null);
+                        return;
+                    }
+
+                    var sourceTargetType = new TargetTypeSourceObject(typeof(TTargetProperty), sourceValue);
+
+                    object alreadyMappedObject = null;
+                    if (referenceTracker?.TryGet(sourceTargetType, out alreadyMappedObject) ?? false)
+                    {
+                        targetSetter(target, (TTargetProperty) alreadyMappedObject);
+                        return;
+                    }
+
+                    var targetProp = targetConstructor();
+
+                    targetSetter(target, targetProp);
+                    mappingFunc(sourceValue, targetProp, referenceTracker);
+                };
+
+            Action<TSource, TTarget, ReferenceTracker> MappingWithoutReferenceTracking(
+                Func<TSource, TSourceProperty> sourceGetter, 
+                Action<TTarget, TTargetProperty> targetSetter, 
+                Func<TTargetProperty> targetConstructor, 
+                Action<TSourceProperty, TTargetProperty, ReferenceTracker> mappingFunc) =>
+                (source, target, referenceTracker) =>
+                {
+                    var sourceValue = sourceGetter(source);
+
+                    if (sourceValue == null)
+                    {
+                        targetSetter(target, null);
+                        return;
+                    }
+
+                    var targetProp = targetConstructor();
+
+                    targetSetter(target, targetProp);
+                    mappingFunc(sourceValue, targetProp, referenceTracker);
+                };
+
+            if (!config.MappingConfiguration.ReferenceTrackingEnabled || requiresReferenceTracking.Any(x => 
+                x.Source == sourceProperty.PropertyType && x.Target == targetProperty.PropertyType))
+                return new ComplexMapResult<TSource, TTarget>(MappingFuncWithReferenceTracking(sourcePropertyGetter, setter, constructor, mapFunc), 
+                    requiresReferenceTracking);
+
+            return new ComplexMapResult<TSource, TTarget>(
+                MappingWithoutReferenceTracking(sourcePropertyGetter, setter, constructor, mapFunc), 
+                requiresReferenceTracking);
+        }
+        
+        private static Action<TSource, TTarget, ReferenceTracker> CreateSimplePropertyMap<TSource, TSourceProperty, TTarget, TTargetProperty>(
+            PropertyInfo sourceProperty, 
+            PropertyInfo targetProperty,
+            PropertyConfig<TSourceProperty, TTargetProperty> cfg)
+        {
+            var getter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
+            var setter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
+
+            Action<TSource, TTarget, ReferenceTracker> Func(Func<TSource, TSourceProperty> sourceGetter,
+                Action<TTarget, TTargetProperty> propertySetter, Func<TSourceProperty, TTargetProperty> convert) =>
+                (source, target, _) => propertySetter(target, convert(sourceGetter(source)));
+
+            return Func(getter, setter, cfg.Converterer.Convert);
+        }
     }
 }

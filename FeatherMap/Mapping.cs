@@ -1,49 +1,47 @@
 ﻿using System;
-using System.Linq.Expressions;
 
 namespace FeatherMap
 {
     public class Mapping<TSource, TTarget>
     {
-        private readonly Action<TSource, TTarget> _sourceToTargetFunc;
-        private readonly Action<TSource, TTarget> _targetToSourceFunc;
+        private readonly Action<TSource, TTarget> _mapAction;
+        private readonly Func<TTarget> _targetCreator;
 
-        internal readonly Func<TSource> SourceConstructor;
-        internal readonly Func<TTarget> TargetConstructor;
-
-        internal Mapping(Action<TSource, TTarget> sourceToTargetFunc, Action<TSource, TTarget> targetToSourceFunc)
+        internal Mapping(Action<TSource, TTarget> mapAction)
         {
-            SourceConstructor = GetDefaultConstructor<TSource>();
-            TargetConstructor = GetDefaultConstructor<TTarget>();
-
-            _sourceToTargetFunc = sourceToTargetFunc;
-            _targetToSourceFunc = targetToSourceFunc;
-
+            _mapAction = mapAction;
+            _targetCreator = PropertyAccess.GetDefaultConstructor<TTarget>();
         }
 
-        public static IMappingBuilder<TSource, TTarget> New() => new MappingBuilder<TSource, TTarget>();
+        public TTarget Clone(TSource source)
+        {
+            var target = _targetCreator();
+            _mapAction(source, target);
+            return target;
+        }
 
-        public static Mapping<TSource, TTarget> Auto() => Auto(cfg => cfg);
+        public void Map(TSource source, TTarget target)
+        {
+            _mapAction(source, target);
+        }
+
+        public static Mapping<TSource, TTarget> Create(Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgAction)
+        {
+            var mapAction = MappingBuilder.Create(cfgAction);
+            return new Mapping<TSource, TTarget>(mapAction);
+        }
+
+        public static Mapping<TSource, TTarget> Auto()
+        {
+            var mapAction = MappingBuilder.Auto<TSource, TTarget>(configuration => configuration);
+            return new Mapping<TSource, TTarget>(mapAction);
+        }
 
         public static Mapping<TSource, TTarget> Auto(
-            Func<AutoPropertyConfig<TSource, TTarget>, AutoPropertyConfig<TSource, TTarget>> cfgFunc) =>
-            MappingBuilder<TSource, TTarget>.Auto(cfgFunc);
-
-        private static Func<T> GetDefaultConstructor<T>()
+            Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgFunc)
         {
-            var newExp = Expression.New(typeof(T));
-            var lambda = Expression.Lambda(typeof(Func<T>), newExp);
-            return (Func<T>)lambda.Compile();
+            var mapAction = MappingBuilder.Auto<TSource, TTarget>(configuration => cfgFunc(configuration));
+            return new Mapping<TSource, TTarget>(mapAction);
         }
-        
-        public (Action<TTarget> To, Action<TTarget> ToTarget) Map(TSource source)
-            => (target => MapToTarget(source, target), target => MapToTarget(source, target));
-
-        public (Action<TSource> To, Action<TSource> ToSource) Map(TTarget target) 
-            => (source => MapToSource(source, target), source => MapToSource(source, target));
-
-        public void MapToTarget(TSource source, TTarget target) => _sourceToTargetFunc(source, target);
-
-        public void MapToSource(TSource source, TTarget target) => _targetToSourceFunc(source, target);
     }
 }

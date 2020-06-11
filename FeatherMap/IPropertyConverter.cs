@@ -1,9 +1,7 @@
 ﻿namespace FeatherMap
 {
-    public interface IPropertyConverter<TSourceProperty, TTargetProperty>
+    public interface IPropertyConverter<in TSource, out TTarget>
     {
-        TTargetProperty Convert(TSourceProperty source);
-
-        TSourceProperty ConvertBack(TTargetProperty target);
+        TTarget Convert(TSource source);
     }
 }
