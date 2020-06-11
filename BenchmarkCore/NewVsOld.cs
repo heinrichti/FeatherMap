@@ -1,11 +1,12 @@
 ﻿using System;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
 using FeatherMap;
 using FeatherMap.New;
 
 namespace BenchmarkCore
 {
-    [SimpleJob]
+    [SimpleJob(RunStrategy.Throughput, 1, 2, 1)]
     [MemoryDiagnoser]
     public class NewVsOld
     {
@@ -20,7 +21,7 @@ namespace BenchmarkCore
             _personMapping = Mapping<Person, Person>.Auto(cfg => 
                 cfg.Bind(x => x.Address, x => x.Address, config => config.UseMapping(addressMapping)));
 
-            _personMappingNew = NewMappingBuilder.Auto<Person, Person>();
+            _personMappingNew = NewMapping.Auto<Person, Person>();
             _guid = Guid.NewGuid();
         }
 

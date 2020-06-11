@@ -24,7 +24,7 @@ namespace BenchmarkCore
             var referenceTrackingBenchmark = new CreateOverheadBenchmark();
             referenceTrackingBenchmark.FeatherMapBenchmark();
 
-            //await Task.Delay(1000);
+            //await Task.Delay(5000);
 
             //referenceTrackingBenchmark.AutoMapper();
             //referenceTrackingBenchmark.ExpressMapperBenchmark();
@@ -33,16 +33,25 @@ namespace BenchmarkCore
             //    referenceTrackingBenchmark.FeatherMapNew();
             //}
 
+            //Console.WriteLine("Starting");
 
             //var trackingBenchmark = new ReferenceTrackingBenchmark();
             //trackingBenchmark.Setup();
-            //trackingBenchmark.FeatherMapNew();
+            //for (int i = 0; i < 100000000; i++)
+            //{
+            //    trackingBenchmark.FeatherMapNew();
+            //}
+
+            //Console.WriteLine("Ended");
+
+            //await Task.Delay(5000);
+
 
             //BenchmarkRunner.Run<Program>();
-            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
-            //BenchmarkRunner.Run<NewVsOld>();
+            BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
             //BenchmarkRunner.Run<CreateOverheadBenchmark>();
         }
@@ -73,7 +82,7 @@ namespace BenchmarkCore
 
             ExpressMapper.Mapper.Register<Person, Person>();
 
-            _newMapping = NewMappingBuilder.Auto<Person, Person>();
+            _newMapping = NewMapping.Auto<Person, Person>();
         }
 
         [Benchmark(Baseline = true)]

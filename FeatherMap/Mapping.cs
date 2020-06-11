@@ -13,8 +13,8 @@ namespace FeatherMap
 
         internal Mapping(Action<TSource, TTarget> sourceToTargetFunc, Action<TSource, TTarget> targetToSourceFunc)
         {
-            SourceConstructor = GetDefaultConstructor<TSource>();
-            TargetConstructor = GetDefaultConstructor<TTarget>();
+            SourceConstructor = PropertyAccess.GetDefaultConstructor<TSource>();
+            TargetConstructor = PropertyAccess.GetDefaultConstructor<TTarget>();
 
             _sourceToTargetFunc = sourceToTargetFunc;
             _targetToSourceFunc = targetToSourceFunc;
@@ -28,13 +28,6 @@ namespace FeatherMap
         public static Mapping<TSource, TTarget> Auto(
             Func<AutoPropertyConfig<TSource, TTarget>, AutoPropertyConfig<TSource, TTarget>> cfgFunc) =>
             MappingBuilder<TSource, TTarget>.Auto(cfgFunc);
-
-        private static Func<T> GetDefaultConstructor<T>()
-        {
-            var newExp = Expression.New(typeof(T));
-            var lambda = Expression.Lambda(typeof(Func<T>), newExp);
-            return (Func<T>)lambda.Compile();
-        }
         
         public (Action<TTarget> To, Action<TTarget> ToTarget) Map(TSource source)
             => (target => MapToTarget(source, target), target => MapToTarget(source, target));

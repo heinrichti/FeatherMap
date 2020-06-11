@@ -22,7 +22,7 @@ namespace BenchmarkCore
                 cfg.CreateMap<A, A>(); //.PreserveReferences();
             }));
 
-            _featherMapNew = NewMappingBuilder.Auto<A, A>();
+            _featherMapNew = NewMapping.Auto<A, A>();
             TinyMapper.Bind<A, A>();
             ExpressMapper.Mapper.Register<A, A>();
         }

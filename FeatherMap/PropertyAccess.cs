@@ -35,5 +35,12 @@ namespace FeatherMap
             return (Func<T, TProp>)Expression.Lambda(property, instance).Compile();
 #endif
         }
+
+        internal static Func<T> GetDefaultConstructor<T>()
+        {
+            var newExp = Expression.New(typeof(T));
+            var lambda = Expression.Lambda(typeof(Func<T>), newExp);
+            return (Func<T>)lambda.Compile();
+        }
     }
 }
