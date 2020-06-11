@@ -15,6 +15,9 @@ namespace Tests
             a.TestB = new TestB {StringTest = "Hello world", ARef = a};
 
             var b = mapping.Clone(a);
+
+            Assert.AreEqual(12, b.IntTest);
+            Assert.AreEqual("Hello world", b.TestB.StringTest);
         }
 
         private class TestA

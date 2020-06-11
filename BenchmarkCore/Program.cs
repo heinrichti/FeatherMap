@@ -46,8 +46,8 @@ namespace BenchmarkCore
             //await Task.Delay(5000);
 
 
-            //BenchmarkRunner.Run<Program>();
-            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            BenchmarkRunner.Run<Program>();
+            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
             //BenchmarkRunner.Run<NewVsOld>();
@@ -58,7 +58,6 @@ namespace BenchmarkCore
         private Person _personA;
         private Person _personB;
         private AutoMapper.IMapper _autoMapper;
-        private Mapping<Person, Person> _newMapping;
 
         [GlobalSetup]
         public void Setup()
@@ -66,10 +65,7 @@ namespace BenchmarkCore
             _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
             _personB = new Person();
 
-            Mapper.Register(Mapping<Person, Person>.Auto(cfg =>
-                cfg.Bind(x => x.Address, person => person.Address, 
-                    addressMap => 
-                        addressMap.CreateMap(config => config))));
+            Mapper.Register(Mapping<Person, Person>.Auto());
 
             _autoMapper = new AutoMapper.MapperConfiguration(cfg =>
             {
@@ -80,17 +76,6 @@ namespace BenchmarkCore
             TinyMapper.Bind<Person, Person>();
 
             ExpressMapper.Mapper.Register<Person, Person>();
-
-            _newMapping = Mapping<Person, Person>.Auto();
-        }
-
-        [Benchmark(Baseline = true)]
-        public void New()
-        {
-            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
-            _personB = new Person();
-
-            _newMapping.Map(_personA, _personB);
         }
 
         [Benchmark]
