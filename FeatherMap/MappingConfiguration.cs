@@ -5,7 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     public class MappingConfiguration<TSource, TTarget>
     {
@@ -31,6 +31,12 @@ namespace FeatherMap.New
 
             var propertyConfig = new PropertyConfig<TSourceProperty, TTargetProperty>();
             configAction(propertyConfig);
+
+            if (typeof(TSourceProperty) != typeof(TTargetProperty) && propertyConfig.Converterer == null)
+            {
+                throw new ArgumentException("Missing conversion: " + 
+                                            sourcePropertyInfo.PropertyType.Name + " --> " + targetPropertyInfo.PropertyType.Name);
+            }
 
             if (!targetPropertyInfo.CanWrite)
                 throw new ArgumentException("Property is not writeable: " + typeof(TSource).Name + "->" + sourceMember.Member.Name);
@@ -85,6 +91,15 @@ namespace FeatherMap.New
             }
 
             return new MappingConfiguration<TSourceProperty, TTargetProperty>();
+        }
+
+        internal HashSet<string> PropertiesToIgnore { get; } = new HashSet<string>();
+
+        public MappingConfiguration<TSource, TTarget> Ignore<TProperty>(Expression<Func<TSource, TProperty>> property)
+        {
+            var sourceMember = (MemberExpression)property.Body;
+            PropertiesToIgnore.Add(sourceMember.Member.Name);
+            return this;
         }
     }
 }

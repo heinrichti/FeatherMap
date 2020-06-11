@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using FeatherMap.New;
+using FeatherMap;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests
@@ -18,7 +18,7 @@ namespace Tests
             //    .Bind(a => a.B, a => a.B, config => config.CreateMap(bMap =>
             //        bMap.Bind(b => b.IdString, b => b.IdString, cfg => cfg.Convert(s => s + "321")))));
 
-            var mapping = NewMapping<A, A>.Auto(x => x
+            var mapping = Mapping<A, A>.Auto(x => x
                 .Bind(a => a.TestA, a => a.TestA, x => x.Convert(i => i + 25)));
 
             var a1 = new A();

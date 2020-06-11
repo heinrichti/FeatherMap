@@ -1,4 +1,4 @@
-﻿using FeatherMap.New;
+﻿using FeatherMap;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests
@@ -9,7 +9,7 @@ namespace Tests
         [TestMethod]
         public void FullAuto()
         {
-            var mapping = NewMapping<TestA, TestA>.Auto();
+            var mapping = Mapping<TestA, TestA>.Auto();
             
             var a = new TestA() {IntTest = 12};
             a.TestB = new TestB {StringTest = "Hello world", ARef = a};

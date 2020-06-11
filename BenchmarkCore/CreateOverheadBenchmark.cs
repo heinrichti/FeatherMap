@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AutoMapper;
+﻿using AutoMapper;
 using BenchmarkDotNet.Attributes;
-using ExpressMapper;
-using FeatherMap.New;
+using FeatherMap;
 
 namespace BenchmarkCore
 {
@@ -29,7 +25,7 @@ namespace BenchmarkCore
         [Benchmark]
         public void FeatherMapBenchmark()
         {
-            var map = NewMapping<A, A>.Auto();
+            var map = Mapping<A, A>.Auto();
             map.Map(new A(), new A());
         }
 

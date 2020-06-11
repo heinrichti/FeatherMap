@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     internal readonly struct TargetTypeSourceObject : IEquatable<TargetTypeSourceObject>
     {

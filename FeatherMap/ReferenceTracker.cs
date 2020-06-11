@@ -1,6 +1,6 @@
 ﻿using System.Collections.Specialized;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     internal class ReferenceTracker
     {

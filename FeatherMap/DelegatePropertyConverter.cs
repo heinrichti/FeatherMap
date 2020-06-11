@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     internal class DelegatePropertyConverter<TSource, TTarget> : IPropertyConverter<TSource, TTarget>
     {

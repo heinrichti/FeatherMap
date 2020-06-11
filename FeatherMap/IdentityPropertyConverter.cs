@@ -1,4 +1,4 @@
-﻿namespace FeatherMap.New
+﻿namespace FeatherMap
 {
     internal sealed class IdentityPropertyConverter<T> : IPropertyConverter<T, T>
     {

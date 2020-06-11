@@ -1,7 +1,7 @@
 ﻿using System;
 using AutoMapper;
 using BenchmarkDotNet.Attributes;
-using FeatherMap.New;
+using FeatherMap;
 using Nelibur.ObjectMapper;
 using Mapper = AutoMapper.Mapper;
 
@@ -12,22 +12,22 @@ namespace BenchmarkCore
     public class ReferenceTrackingBenchmark
     {
         private Mapper _autoMapper;
-        private NewMapping<A, A> _featherMapNew;
+        private Mapping<A, A> _featherMapNew;
 
         [GlobalSetup]
         public void Setup()
         {
             _autoMapper = new Mapper(new MapperConfiguration(cfg =>
             {
-                cfg.CreateMap<A, A>(); //.PreserveReferences();
+                cfg.CreateMap<A, A>().PreserveReferences();
             }));
 
-            _featherMapNew = NewMapping<A, A>.Auto();
+            _featherMapNew = Mapping<A, A>.Auto();
             TinyMapper.Bind<A, A>();
             ExpressMapper.Mapper.Register<A, A>();
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void ExpressMapperBenchmark()
         {
             var a = GetA();
@@ -35,7 +35,7 @@ namespace BenchmarkCore
             ExpressMapper.Mapper.Map(a, b);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void AutoMapper()
         {
             var a = GetA();
@@ -55,7 +55,7 @@ namespace BenchmarkCore
         private static A GetA()
         {
             var a = new A {Int = 1};
-            a.B = new B {Int = 2, C = new C() {A = new A(), Int = 3}};
+            a.B = new B {Int = 2, C = new C() {A = a, Int = 3}};
             return a;
         }
 

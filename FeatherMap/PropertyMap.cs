@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     internal abstract class PropertyMapBase
     {

@@ -6,7 +6,6 @@ using System.Collections.Specialized;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Configs;
 using FeatherMap;
-using FeatherMap.New;
 
 namespace BenchmarkCore
 {
@@ -59,7 +58,7 @@ namespace BenchmarkCore
         private Person _personA;
         private Person _personB;
         private AutoMapper.IMapper _autoMapper;
-        private NewMapping<Person, Person> _newMapping;
+        private Mapping<Person, Person> _newMapping;
 
         [GlobalSetup]
         public void Setup()
@@ -67,10 +66,10 @@ namespace BenchmarkCore
             _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
             _personB = new Person();
 
-            var adressMapping = Mapping<Address, Address>.Auto();
             Mapper.Register(Mapping<Person, Person>.Auto(cfg =>
-                cfg.Direction(Direction.OneWay)
-                    .Bind(x => x.Address, person => person.Address, config => config.UseMapping(adressMapping))));
+                cfg.Bind(x => x.Address, person => person.Address, 
+                    addressMap => 
+                        addressMap.CreateMap(config => config))));
 
             _autoMapper = new AutoMapper.MapperConfiguration(cfg =>
             {
@@ -82,7 +81,7 @@ namespace BenchmarkCore
 
             ExpressMapper.Mapper.Register<Person, Person>();
 
-            _newMapping = NewMapping<Person, Person>.Auto();
+            _newMapping = Mapping<Person, Person>.Auto();
         }
 
         [Benchmark(Baseline = true)]
@@ -118,7 +117,7 @@ namespace BenchmarkCore
             _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
             _personB = new Person();
 
-            Mapper.MapToTarget(_personA, _personB);
+            Mapper.Map(_personA, _personB);
         }
 
         [Benchmark]

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FeatherMap.New
+namespace FeatherMap
 {
     internal class ComplexMapResult<T, TU>
     {
