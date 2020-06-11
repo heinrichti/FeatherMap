@@ -4,13 +4,11 @@ namespace FeatherMap.New
 {
     internal class SourceToTargetMap : IEquatable<SourceToTargetMap>
     {
-        public Func<Delegate> ResultingMap { get; }
         private readonly Type _source;
         private readonly Type _target;
 
-        public SourceToTargetMap(Type source, Type target, Func<Delegate> resultingMap = null)
+        public SourceToTargetMap(Type source, Type target)
         {
-            ResultingMap = resultingMap;
             _source = source;
             _target = target;
         }

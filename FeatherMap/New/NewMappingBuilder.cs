@@ -45,8 +45,8 @@ namespace FeatherMap.New
                     Action<TSource, TTarget, ReferenceTracker> MapFunc(Delegate d) =>
                         (source, target, referenceTracker) =>
                         {
-                            var value = (Func<Delegate>) func;
-                            var action = (Action<TSource, TTarget, ReferenceTracker>) value();
+                            var value = (Func<Delegate>)func;
+                            var action = (Action<TSource, TTarget, ReferenceTracker>)value();
                             action(source, target, referenceTracker);
                         };
 
@@ -60,7 +60,7 @@ namespace FeatherMap.New
 
             Action<TSource, TTarget, ReferenceTracker> result = (source, target, referenceTracker) => { };
             Delegate ResultingMap() => result;
-            typeMappings.Add(new SourceToTargetMap(sourceType, targetType, ResultingMap), (Func<Delegate>) ResultingMap);
+            typeMappings.Add(new SourceToTargetMap(sourceType, targetType), (Func<Delegate>) ResultingMap);
 
             var referenceCheckList = new List<ReferenceTrackingRequired>();
             var actions = new List<Action<TSource, TTarget, ReferenceTracker>>();
@@ -167,6 +167,10 @@ namespace FeatherMap.New
             PropertyInfo targetProperty,
             Dictionary<SourceToTargetMap, Delegate> typeMappings,
             PropertyConfig<TSourceProperty, TTargetProperty> config)
+            where TSource : class
+            where TTarget : class
+            where TSourceProperty : class
+            where TTargetProperty : class
         {
             var createMapFunc = typeof(NewMappingBuilder).GetMethod(nameof(CreateMap), BindingFlags.Static | BindingFlags.NonPublic)
                 .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
@@ -192,7 +196,7 @@ namespace FeatherMap.New
 
                     if (sourceValue == null)
                     {
-                        targetSetter(target, default);
+                        targetSetter(target, null);
                         return;
                     }
 
@@ -206,8 +210,6 @@ namespace FeatherMap.New
                     }
 
                     var targetProp = targetConstructor();
-
-                    //referenceTracker?.Add(sourceTargetType, targetProp);
 
                     targetSetter(target, targetProp);
                     mappingFunc(sourceValue, targetProp, referenceTracker);
@@ -224,7 +226,7 @@ namespace FeatherMap.New
 
                     if (sourceValue == null)
                     {
-                        targetSetter(target, default);
+                        targetSetter(target, null);
                         return;
                     }
 

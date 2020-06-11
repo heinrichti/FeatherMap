@@ -27,7 +27,7 @@ namespace BenchmarkCore
             ExpressMapper.Mapper.Register<A, A>();
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void ExpressMapperBenchmark()
         {
             var a = GetA();
@@ -35,7 +35,7 @@ namespace BenchmarkCore
             ExpressMapper.Mapper.Map(a, b);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void AutoMapper()
         {
             var a = GetA();
