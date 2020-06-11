@@ -27,20 +27,20 @@ namespace FeatherMap
 
         public static Mapping<TSource, TTarget> Create(Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgAction)
         {
-            var mapAction = NewMappingBuilder.Create(cfgAction);
+            var mapAction = MappingBuilder.Create(cfgAction);
             return new Mapping<TSource, TTarget>(mapAction);
         }
 
         public static Mapping<TSource, TTarget> Auto()
         {
-            var mapAction = NewMappingBuilder.Auto<TSource, TTarget>(configuration => configuration);
+            var mapAction = MappingBuilder.Auto<TSource, TTarget>(configuration => configuration);
             return new Mapping<TSource, TTarget>(mapAction);
         }
 
         public static Mapping<TSource, TTarget> Auto(
             Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgFunc)
         {
-            var mapAction = NewMappingBuilder.Auto<TSource, TTarget>(configuration => cfgFunc(configuration));
+            var mapAction = MappingBuilder.Auto<TSource, TTarget>(configuration => cfgFunc(configuration));
             return new Mapping<TSource, TTarget>(mapAction);
         }
     }

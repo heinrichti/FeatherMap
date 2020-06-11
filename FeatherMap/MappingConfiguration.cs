@@ -47,9 +47,15 @@ namespace FeatherMap
         internal MappingConfiguration<TSource, TTarget> BindInternalWithoutConfig<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo,
             PropertyInfo targetPropertyInfo
-        ) =>
-            BindInternal(sourcePropertyInfo, targetPropertyInfo,
+        )
+        {
+            if (PropertyMaps.Any(b =>
+                b.SourcePropertyInfo == sourcePropertyInfo))
+                return this;
+
+            return BindInternal(sourcePropertyInfo, targetPropertyInfo,
                 new PropertyConfig<TSourceProperty, TTargetProperty>());
+        }
 
         internal MappingConfiguration<TSource, TTarget> BindInternal<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo,

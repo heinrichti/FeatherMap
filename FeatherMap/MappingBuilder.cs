@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace FeatherMap
 {
-    internal class NewMappingBuilder
+    internal class MappingBuilder
     {
         public static Action<TSource, TTarget> Create<TSource, TTarget>(
             Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgAction)
@@ -55,8 +55,8 @@ namespace FeatherMap
                 }
             }
 
-            var simplePropertyMapMethod = typeof(NewMappingBuilder).GetMethod(nameof(CreateSimplePropertyMap), BindingFlags.Static | BindingFlags.NonPublic);
-            var complexPropertyMapMethod = typeof(NewMappingBuilder).GetMethod(nameof(CreateComplexMap), BindingFlags.Static | BindingFlags.NonPublic);
+            var simplePropertyMapMethod = typeof(MappingBuilder).GetMethod(nameof(CreateSimplePropertyMap), BindingFlags.Static | BindingFlags.NonPublic);
+            var complexPropertyMapMethod = typeof(MappingBuilder).GetMethod(nameof(CreateComplexMap), BindingFlags.Static | BindingFlags.NonPublic);
 
             Action<TSource, TTarget, ReferenceTracker> result = (source, target, referenceTracker) => { };
             Delegate ResultingMap() => result;
@@ -121,6 +121,9 @@ namespace FeatherMap
 
             foreach (var sourceProperty in sourceProperties)
             {
+                if (mappingConfiguration.PropertiesToIgnore.Contains(sourceProperty.Name))
+                    continue;
+
                 if (targetPropertyDictionary.TryGetValue(sourceProperty.Name, out var targetProperty))
                 {
                     if (!targetProperty.CanWrite)
@@ -129,6 +132,7 @@ namespace FeatherMap
                     if (sourceProperty.PropertyType.IsPrimitive || sourceProperty.PropertyType == typeof(string) ||
                         sourceProperty.PropertyType.IsValueType)
                     {
+                        // TODO evtl gibt es dafür bereits eine config
                         var bindFunc = mappingConfiguration.GetType().GetMethod("BindInternalWithoutConfig",
                             BindingFlags.Instance | BindingFlags.NonPublic)
                             .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
@@ -137,7 +141,7 @@ namespace FeatherMap
                     }
                     else
                     {
-                        var bindFunc = typeof(NewMappingBuilder).GetMethod(nameof(BindComplexConfig),
+                        var bindFunc = typeof(MappingBuilder).GetMethod(nameof(BindComplexConfig),
                                 BindingFlags.Static | BindingFlags.NonPublic)
                             .MakeGenericMethod(typeof(TSource), typeof(TTarget), sourceProperty.PropertyType, targetProperty.PropertyType);
 
@@ -172,7 +176,7 @@ namespace FeatherMap
             where TSourceProperty : class
             where TTargetProperty : class
         {
-            var createMapFunc = typeof(NewMappingBuilder).GetMethod(nameof(CreateMap), BindingFlags.Static | BindingFlags.NonPublic)
+            var createMapFunc = typeof(MappingBuilder).GetMethod(nameof(CreateMap), BindingFlags.Static | BindingFlags.NonPublic)
                 .MakeGenericMethod(sourceProperty.PropertyType, targetProperty.PropertyType);
 
             var mapFuncResult = (ComplexMapResult<TSourceProperty, TTargetProperty>)createMapFunc
