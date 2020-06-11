@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -8,6 +11,7 @@ namespace FeatherMap.New
     public class MappingConfiguration<TSource, TTarget>
     {
         internal List<PropertyMapBase> PropertyMaps { get; } = new List<PropertyMapBase>();
+
         internal bool ReferenceTrackingEnabled { get; private set; } = true;
 
         public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
@@ -48,6 +52,15 @@ namespace FeatherMap.New
             PropertyConfig<TSourceProperty, TTargetProperty> config
         )
         {
+            var alreadyConfiguredMap = PropertyMaps.FirstOrDefault(x =>
+                x.SourcePropertyInfo == sourcePropertyInfo && x.TargetPropertyInfo == targetPropertyInfo);
+            if (alreadyConfiguredMap != null)
+            {
+                Trace.WriteLine("Mapping already configured: " + sourcePropertyInfo.DeclaringType.Name + "." + sourcePropertyInfo.PropertyType.Name +
+                                " --> " + targetPropertyInfo.DeclaringType.Name + "." + targetPropertyInfo.PropertyType.Name);
+                return this;
+            }
+
             var propertyMap = new PropertyMap<TSourceProperty, TTargetProperty>(
                 sourcePropertyInfo,
                 targetPropertyInfo,
@@ -61,6 +74,18 @@ namespace FeatherMap.New
         {
             ReferenceTrackingEnabled = false;
             return this;
+        }
+
+        public MappingConfiguration<TSourceProperty, TTargetProperty> GetChildConfigOrNew<TSourceProperty, TTargetProperty>(
+            PropertyInfo sourcePropertyInfo, PropertyInfo targetPropertyInfo)
+        {
+            foreach (var propertyMap in PropertyMaps.Where(x => x.SourcePropertyInfo == sourcePropertyInfo && x.TargetPropertyInfo == targetPropertyInfo))
+            {
+                if (propertyMap.HasMappingConfiguration())
+                    return (MappingConfiguration<TSourceProperty, TTargetProperty>) propertyMap.GetMappingConfiguration();
+            }
+
+            return new MappingConfiguration<TSourceProperty, TTargetProperty>();
         }
     }
 }

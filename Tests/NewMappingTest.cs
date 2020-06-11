@@ -18,7 +18,8 @@ namespace Tests
             //    .Bind(a => a.B, a => a.B, config => config.CreateMap(bMap =>
             //        bMap.Bind(b => b.IdString, b => b.IdString, cfg => cfg.Convert(s => s + "321")))));
 
-            var mapping = NewMapping.Auto<A, A>();
+            var mapping = NewMapping.Auto<A, A>(x => x
+                .Bind(a => a.TestA, a => a.TestA, x => x.Convert(i => i + 25)));
 
             var a1 = new A();
             a1.Id = Guid.NewGuid();

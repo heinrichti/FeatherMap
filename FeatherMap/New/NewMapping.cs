@@ -95,13 +95,21 @@ namespace FeatherMap.New
 
 
 
-        public static Action<TSource, TTarget> Auto<TSource, TTarget>()
+        public static Action<TSource, TTarget> Auto<TSource, TTarget>(Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgFunc)
         {
+            var cfg = new MappingConfiguration<TSource, TTarget>();
+            cfg = cfgFunc(cfg);
             return Create<TSource, TTarget>(configuration =>
-                AutoConfig<TSource, TTarget>(new Dictionary<SourceToTargetMap, object>()));
+                AutoConfig(new Dictionary<SourceToTargetMap, object>(), cfg));
         }
 
-        internal static MappingConfiguration<TSource, TTarget> AutoConfig<TSource, TTarget>(Dictionary<SourceToTargetMap, object> typeConfigs)
+        public static Action<TSource, TTarget> Auto<TSource, TTarget>()
+        {
+            return Auto<TSource, TTarget>(x => x);
+        }
+
+        internal static MappingConfiguration<TSource, TTarget> AutoConfig<TSource, TTarget>(
+            Dictionary<SourceToTargetMap, object> typeConfigs, MappingConfiguration<TSource, TTarget> mappingConfiguration)
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
@@ -109,7 +117,9 @@ namespace FeatherMap.New
             if (typeConfigs.TryGetValue(new SourceToTargetMap(sourceType, targetType), out var previousMappingConfig))
                 return (MappingConfiguration<TSource, TTarget>) previousMappingConfig;
 
-            var mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
+            if (mappingConfiguration == null)
+                mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
+
             typeConfigs.Add(new SourceToTargetMap(sourceType, targetType), mappingConfiguration);
 
             var sourceProperties = sourceType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -146,13 +156,17 @@ namespace FeatherMap.New
             return mappingConfiguration;
         }
 
-        private static void BindComplexConfig<TSource, TTarget, TSourceProperty, TTargetProperty>(PropertyInfo sourceProperty, PropertyInfo targetProperty, 
+        private static void BindComplexConfig<TSource, TTarget, TSourceProperty, TTargetProperty>(
+            PropertyInfo sourceProperty, PropertyInfo targetProperty, 
             MappingConfiguration<TSource, TTarget> mappingConfiguration,
             Dictionary<SourceToTargetMap, object> typeMappings)
         {
             mappingConfiguration.BindInternal(sourceProperty, targetProperty,
                 new PropertyConfig<TSourceProperty, TTargetProperty>()
-                    .CreateMap(x => AutoConfig<TSourceProperty, TTargetProperty>(typeMappings)));
+                    .CreateMap(x => 
+                        AutoConfig<TSourceProperty, TTargetProperty>(
+                            typeMappings, 
+                            mappingConfiguration.GetChildConfigOrNew<TSourceProperty, TTargetProperty>(sourceProperty, targetProperty))));
         }
 
         private static ComplexMapResult<TSource, TTarget> CreateComplexMap<TSource, TSourceProperty, TTarget, TTargetProperty>(

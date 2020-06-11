@@ -14,6 +14,8 @@ namespace FeatherMap.New
 
         internal abstract bool HasMappingConfiguration();
 
+        internal abstract object GetMappingConfiguration();
+
         internal PropertyInfo TargetPropertyInfo { get; }
 
         internal PropertyInfo SourcePropertyInfo { get; }
@@ -32,6 +34,9 @@ namespace FeatherMap.New
             Config = config;
 
         internal override bool HasMappingConfiguration() => Config.MappingConfiguration != null;
+
+        internal override object GetMappingConfiguration() => Config.MappingConfiguration;
+
         internal override object ConfigObject => Config;
     }
 }
