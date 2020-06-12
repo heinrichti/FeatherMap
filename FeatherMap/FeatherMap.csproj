@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
     <AssemblyName>FeatherMap</AssemblyName>
     <RootNamespace>FeatherMap</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright />
     <Description>FeatherMap is a fast and lightweight object mapping library with reference tracking by default.</Description>
