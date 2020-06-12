@@ -2,14 +2,12 @@
 using BenchmarkDotNet.Running;
 using Nelibur.ObjectMapper;
 using System;
-using System.Collections.Specialized;
 using System.Threading.Tasks;
-using BenchmarkDotNet.Configs;
 using FeatherMap;
 
 namespace BenchmarkCore
 {
-    [SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.NetCoreApp31)]
+    [SimpleJob]
     [MemoryDiagnoser]
     public class Program
     {

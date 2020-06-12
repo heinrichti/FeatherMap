@@ -20,7 +20,7 @@ namespace FeatherMap
                     (source, target) =>
                     {
                         var referenceTracker = new ReferenceTracker();
-                        referenceTracker.Add(new TargetTypeSourceObject(typeof(TTarget), source), target);
+                        referenceTracker.Add(typeof(TTarget), source, target);
                         mappingFunc(source, target, referenceTracker);
                     };
 
@@ -218,16 +218,14 @@ namespace FeatherMap
                     return;
                 }
 
-                var sourceTargetType = new TargetTypeSourceObject(typeof(TTargetProperty), sourceValue);
-
-                if (referenceTracker.TryGet(sourceTargetType, out var alreadyMappedObject))
+                if (referenceTracker.TryGet(typeof(TTargetProperty), sourceValue, out var alreadyMappedObject))
                 {
                     targetSetter(target, (TTargetProperty) alreadyMappedObject);
                     return;
                 }
 
                 var targetProp = targetConstructor();
-                referenceTracker.Add(sourceTargetType, targetProp);
+                referenceTracker.Add(typeof(TTargetProperty), sourceValue, targetProp);
 
                 targetSetter(target, targetProp);
                 mappingFunc(sourceValue, targetProp, referenceTracker);
