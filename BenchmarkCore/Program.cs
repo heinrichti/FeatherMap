@@ -7,7 +7,7 @@ using FeatherMap;
 
 namespace BenchmarkCore
 {
-    [SimpleJob]
+    [SimpleJob(warmupCount:3, targetCount:3)]
     [MemoryDiagnoser]
     public class Program
     {
@@ -46,8 +46,8 @@ namespace BenchmarkCore
             //await Task.Delay(5000);
 
 
-            //BenchmarkRunner.Run<Program>();
-            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            BenchmarkRunner.Run<Program>();
+            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
             //BenchmarkRunner.Run<NewVsOld>();

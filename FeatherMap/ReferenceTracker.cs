@@ -2,7 +2,7 @@
 
 namespace FeatherMap
 {
-    internal class ReferenceTracker
+    internal struct ReferenceTracker
     {
         private Container _head;
 

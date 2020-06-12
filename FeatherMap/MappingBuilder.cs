@@ -28,7 +28,7 @@ namespace FeatherMap
             }
 
             Func<Action<TSource, TTarget, ReferenceTracker>, Action<TSource, TTarget>> f =
-                mappingAction => (s1, s2) => mappingAction(s1, s2, null);
+                mappingAction => (s1, s2) => mappingAction(s1, s2, new ReferenceTracker());
 
             return f(result.MappingFunc);
         }
