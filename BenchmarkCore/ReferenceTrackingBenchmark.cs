@@ -44,7 +44,7 @@ namespace BenchmarkCore
         }
 
         [Benchmark]
-        public void FeatherMapNew()
+        public void FeatherMapBenchmark()
         {
             var a = GetA();
             var b = new A();
@@ -55,7 +55,8 @@ namespace BenchmarkCore
         private static A GetA()
         {
             var a = new A {Int = 1};
-            a.B = new B {Int = 2, C = new C() {A = a, Int = 3}};
+            a.B = new B {Int = 2, C = new C() {Int = 3}};
+            a.B.C.B = a.B;
             return a;
         }
 
@@ -78,7 +79,7 @@ namespace BenchmarkCore
         {
             public int Int { get; set; }
 
-            public A A { get; set; }
+            public B B { get; set; }
         }
     }
 }

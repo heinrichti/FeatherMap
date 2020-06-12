@@ -20,8 +20,10 @@ namespace BenchmarkCore
             //newVsOld.Old();
             //newVsOld.New();
 
-            var referenceTrackingBenchmark = new CreateOverheadBenchmark();
+            var referenceTrackingBenchmark = new ReferenceTrackingBenchmark();
+            referenceTrackingBenchmark.Setup();
             referenceTrackingBenchmark.FeatherMapBenchmark();
+            referenceTrackingBenchmark.AutoMapper();
 
             //await Task.Delay(5000);
 
@@ -46,8 +48,8 @@ namespace BenchmarkCore
             //await Task.Delay(5000);
 
 
-            BenchmarkRunner.Run<Program>();
-            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            //BenchmarkRunner.Run<Program>();
+            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
             //BenchmarkRunner.Run<NewVsOld>();

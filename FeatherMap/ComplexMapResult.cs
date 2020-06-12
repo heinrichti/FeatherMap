@@ -5,14 +5,14 @@ namespace FeatherMap
 {
     internal class ComplexMapResult<T, TU>
     {
-        public ComplexMapResult(Action<T, TU, ReferenceTracker> mappingFunc, List<ReferenceTrackingRequired> referenceCheckList)
+        public ComplexMapResult(Action<T, TU, ReferenceTracker> mappingFunc, List<ReferenceTrackingType> referenceTrackingTypes)
         {
             MappingFunc = mappingFunc;
-            ReferenceCheckList = referenceCheckList;
+            ReferenceTrackingTypes = referenceTrackingTypes;
         }
 
         public Action<T, TU, ReferenceTracker> MappingFunc { get; }
 
-        public List<ReferenceTrackingRequired> ReferenceCheckList { get; }
+        public List<ReferenceTrackingType> ReferenceTrackingTypes { get; }
     }
 }

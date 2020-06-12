@@ -2,12 +2,12 @@
 
 namespace FeatherMap
 {
-    internal class ReferenceTrackingRequired
+    internal class ReferenceTrackingType
     {
         public Type Source { get; }
         public Type Target { get; }
 
-        public ReferenceTrackingRequired(Type source, Type target)
+        public ReferenceTrackingType(Type source, Type target)
         {
             Source = source;
             Target = target;
