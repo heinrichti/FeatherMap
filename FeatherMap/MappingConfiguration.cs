@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -13,21 +13,21 @@ namespace FeatherMap
 
         internal bool ReferenceTrackingEnabled { get; private set; } = true;
 
-        public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
-            Expression<Func<TSource, IList<TSourceProperty>>> sourceProperty,
-            Expression<Func<TTarget, IList<TTargetProperty>>> targetProperty)
-        {
-            var sourceMember = (MemberExpression)sourceProperty.Body;
-            var targetMember = (MemberExpression)targetProperty.Body;
+        //public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
+        //    Expression<Func<TSource, List<TSourceProperty>>> sourceProperty,
+        //    Expression<Func<TTarget, List<TTargetProperty>>> targetProperty,
+        //    Action<PropertyConfig<TSourceProperty, TTargetProperty>> config)
+        //{
+        //    var sourceMember = (MemberExpression)sourceProperty.Body;
+        //    var targetMember = (MemberExpression)targetProperty.Body;
 
-            var sourcePropertyInfo = sourceMember.Member.DeclaringType.GetProperty(sourceMember.Member.Name);
-            var targetPropertyInfo = targetMember.Member.DeclaringType.GetProperty(targetMember.Member.Name);
+        //    var sourcePropertyInfo = sourceMember.Member.DeclaringType.GetProperty(sourceMember.Member.Name);
+        //    var targetPropertyInfo = targetMember.Member.DeclaringType.GetProperty(targetMember.Member.Name);
 
-            var cfg = new PropertyConfig<TSourceProperty, TTargetProperty>();
-            this.BindInternal(sourcePropertyInfo, targetPropertyInfo, cfg);
+        //    //this.BindInternal(sourcePropertyInfo, targetPropertyInfo, config);
 
-            return this;
-        }
+        //    return this;
+        //}
 
         public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
             Expression<Func<TSource, TSourceProperty>> sourceProperty,
@@ -60,37 +60,31 @@ namespace FeatherMap
             return BindInternal(sourcePropertyInfo, targetPropertyInfo, propertyConfig);
         }
 
-        internal MappingConfiguration<TSource, TTarget> BindInternalWithoutConfig<TSourceProperty, TTargetProperty>(
-            PropertyInfo sourcePropertyInfo,
-            PropertyInfo targetPropertyInfo
-        )
-        {
-            if (PropertyMaps.Any(b =>
-                b.SourcePropertyInfo == sourcePropertyInfo))
-                return this;
-
-            return BindInternal(sourcePropertyInfo, targetPropertyInfo,
-                new PropertyConfig<TSourceProperty, TTargetProperty>());
-        }
+        private static readonly Type ListType = typeof(IList);
+        private static readonly Type CollectionType = typeof(ICollection);
 
         internal MappingConfiguration<TSource, TTarget> BindInternal<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo,
             PropertyInfo targetPropertyInfo,
             PropertyConfig<TSourceProperty, TTargetProperty> config)
         {
-            var alreadyConfiguredMap = PropertyMaps.FirstOrDefault(x =>
-                x.SourcePropertyInfo == sourcePropertyInfo && x.TargetPropertyInfo == targetPropertyInfo);
-            if (alreadyConfiguredMap != null)
-            {
-                Trace.WriteLine("Mapping already configured: " + sourcePropertyInfo.DeclaringType.Name + "." + sourcePropertyInfo.PropertyType.Name +
-                                " --> " + targetPropertyInfo.DeclaringType.Name + "." + targetPropertyInfo.PropertyType.Name);
-                return this;
-            }
+            PropertyMapBase.PropertyType type = PropertyMapBase.PropertyType.Primitive;
+            if (sourcePropertyInfo.PropertyType.IsValueType && !sourcePropertyInfo.PropertyType.IsPrimitive && sourcePropertyInfo.PropertyType != typeof(Guid))
+                type = PropertyMapBase.PropertyType.Struct;
+            else if (sourcePropertyInfo.PropertyType.IsArray)
+                type = PropertyMapBase.PropertyType.Array;
+            else if (ListType.IsAssignableFrom(sourcePropertyInfo.PropertyType))
+                type = PropertyMapBase.PropertyType.List;
+            else if (CollectionType.IsAssignableFrom(sourcePropertyInfo.PropertyType))
+                type = PropertyMapBase.PropertyType.Collection;
+            else if (sourcePropertyInfo.PropertyType.IsClass && sourcePropertyInfo.PropertyType != typeof(string))
+                type = PropertyMapBase.PropertyType.Complex;
 
             var propertyMap = new PropertyMap<TSourceProperty, TTargetProperty>(
                 sourcePropertyInfo,
                 targetPropertyInfo,
-                config);
+                config,
+                type);
             
             PropertyMaps.Add(propertyMap);
             return this;

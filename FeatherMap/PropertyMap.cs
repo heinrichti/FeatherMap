@@ -4,12 +4,24 @@ namespace FeatherMap
 {
     internal abstract class PropertyMapBase
     {
+        internal enum PropertyType
+        {
+            Primitive,
+            Complex,
+            Struct,
+            Array,
+            Collection,
+            List
+        }
+
         internal PropertyMapBase(
             PropertyInfo sourcePropertyInfo,
-            PropertyInfo targetPropertyInfo)
+            PropertyInfo targetPropertyInfo,
+            PropertyType type)
         {
             SourcePropertyInfo = sourcePropertyInfo;
             TargetPropertyInfo = targetPropertyInfo;
+            Type = type;
         }
 
         internal abstract bool HasMappingConfiguration();
@@ -17,6 +29,8 @@ namespace FeatherMap
         internal abstract object GetMappingConfiguration();
 
         internal PropertyInfo TargetPropertyInfo { get; }
+
+        internal PropertyType Type { get; }
 
         internal PropertyInfo SourcePropertyInfo { get; }
 
@@ -29,8 +43,9 @@ namespace FeatherMap
 
         public PropertyMap(PropertyInfo sourcePropertyInfo,
             PropertyInfo targetPropertyInfo,
-            PropertyConfig<TSourceProperty, TTargetProperty> config)
-            : base(sourcePropertyInfo, targetPropertyInfo) =>
+            PropertyConfig<TSourceProperty, TTargetProperty> config,
+            PropertyType type)
+            : base(sourcePropertyInfo, targetPropertyInfo, type) =>
             Config = config;
 
         internal override bool HasMappingConfiguration() => Config.MappingConfiguration != null;

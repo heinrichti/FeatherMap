@@ -6,10 +6,6 @@ namespace FeatherMap
     {
         private IPropertyConverter<TSourceProperty, TTargetProperty> _converterer;
         
-        internal PropertyConfig(bool isListType = false) => IsListType = isListType;
-
-        internal bool IsListType { get; set; }
-
         internal IPropertyConverter<TSourceProperty, TTargetProperty> Converter
         {
             get => _converterer ?? IdentityPropertyConverter<TSourceProperty>.Instance as IPropertyConverter<TSourceProperty, TTargetProperty>;

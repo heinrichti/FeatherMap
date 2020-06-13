@@ -18,6 +18,8 @@ namespace Tests
             }
 
             var mapping = Mapping<PrimitivesTest, PrimitivesTest>.Auto();
+            //var mapping = Mapping<PrimitivesTest, PrimitivesTest>.Create(cfg => cfg
+            //    .Bind(x => x.List, x => x.List));
             var clone = mapping.Clone(primitivesTest);
 
             for (int i = 0; i < 10; i++)
