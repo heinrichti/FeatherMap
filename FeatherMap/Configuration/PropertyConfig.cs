@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FeatherMap
+namespace FeatherMap.Configuration
 {
     public class PropertyConfig<TSourceProperty, TTargetProperty>
     {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace FeatherMap
+namespace FeatherMap.Configuration
 {
     public class MappingConfiguration<TSource, TTarget>
     {

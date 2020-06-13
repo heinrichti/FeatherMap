@@ -1,4 +1,5 @@
 ﻿using System;
+using FeatherMap.Configuration;
 
 namespace FeatherMap
 {
