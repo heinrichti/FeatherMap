@@ -90,7 +90,7 @@ namespace FeatherMap
                             BindingFlags.Static | BindingFlags.NonPublic)
                         .MakeGenericMethod(genericArguments);
 
-                    var action = (Action<TSource, TTarget, ReferenceTracker>)bindFunc.Invoke(null, new object[] {sourceProperty, targetProperty});
+                    var action = (Action<TSource, TTarget, ReferenceTracker>)bindFunc.Invoke(null, new object[] {sourceProperty, targetProperty, existingMaps});
                     actions.Add(action);
                 }
                 else if (propertyMap.HasMappingConfiguration())
@@ -182,38 +182,45 @@ namespace FeatherMap
             return mappingConfiguration;
         }
 
-        private static Action<TSource, TTarget, ReferenceTracker> CreateListMap<TSource, TTarget, TSourceProperty, TTargetProperty, TSourceInstanceType, TTargetInstanceType>(
-            PropertyInfo sourceProperty, 
-            PropertyInfo targetProperty)
-            where TSourceProperty : List<TSourceInstanceType>
-            where TTargetProperty : List<TTargetInstanceType>
+        private static Action<TSource, TTarget, ReferenceTracker> CreateListMap<TSource, TTarget, TSourceProperty,
+            TTargetProperty, TSourceInstanceType, TTargetInstanceType>(PropertyInfo sourceProperty,
+            PropertyInfo targetProperty, 
+            Dictionary<SourceToTargetMap, MapTracker> existingMaps)
+            where TSourceProperty : class, IList<TSourceInstanceType>
+            where TTargetProperty : class, IList<TTargetInstanceType>
         {
             var sourceInstanceType = typeof(TSourceInstanceType);
             var sourceGetter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
             var targetSetter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
 
+            Func<TSourceInstanceType, TTargetInstanceType> convertFunc;
+
             if (sourceInstanceType.IsPrimitive || sourceInstanceType == typeof(string) ||
                 sourceInstanceType.IsValueType)
             {
                 var converter = IdentityPropertyConverter<TSourceInstanceType>.Instance as IPropertyConverter<TSourceInstanceType, TTargetInstanceType>;
-
-                Action<TSource, TTarget, ReferenceTracker> map = (source, target, arg3) =>
-                {
-                    var sourceList = sourceGetter(source);
-                    var result = new List<TTargetInstanceType>();
-                    for (int i = 0; i < sourceList.Count; i++)
-                    {
-                        var item = sourceList[i];
-                        result.Add(converter.Convert(item));
-                    }
-
-                    targetSetter(target, result as TTargetProperty);
-                };
-
-                return map;
+                convertFunc = converter.Convert;
+            }
+            else
+            {
+                var mapping = Mapping<TSourceInstanceType, TTargetInstanceType>.Auto();
+                convertFunc = mapping.Clone;
             }
 
-            return (source, target, arg3) => { };
+            void Map(TSource source, TTarget target, ReferenceTracker tracker)
+            {
+                var sourceList = sourceGetter(source);
+                var result = new List<TTargetInstanceType>();
+                for (int i = 0; i < sourceList.Count; i++)
+                {
+                    var item = sourceList[i];
+                    result.Add(convertFunc(item));
+                }
+
+                targetSetter(target, result as TTargetProperty);
+            }
+
+            return Map;
         }
 
         private static void BindComplexConfig<TSource, TTarget, TSourceProperty, TTargetProperty>(
