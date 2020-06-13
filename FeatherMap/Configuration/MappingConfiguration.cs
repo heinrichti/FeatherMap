@@ -9,6 +9,7 @@ namespace FeatherMap.Configuration
 {
     public class MappingConfiguration<TSource, TTarget>
     {
+        private readonly Dictionary<SourceToTargetMap, object> _typeConfigs;
         internal List<PropertyMapBase> PropertyMaps { get; } = new List<PropertyMapBase>();
 
         internal bool ReferenceTrackingEnabled { get; private set; } = true;
@@ -45,7 +46,7 @@ namespace FeatherMap.Configuration
             var sourcePropertyInfo = sourceMember.Member.DeclaringType.GetProperty(sourceMember.Member.Name);
             var targetPropertyInfo = targetMember.Member.DeclaringType.GetProperty(targetMember.Member.Name);
 
-            var propertyConfig = new PropertyConfig<TSourceProperty, TTargetProperty>();
+            var propertyConfig = new PropertyConfig<TSourceProperty, TTargetProperty>(_typeConfigs);
             configAction(propertyConfig);
 
             if (typeof(TSourceProperty) != typeof(TTargetProperty) && propertyConfig.Converter == null)
@@ -60,8 +61,7 @@ namespace FeatherMap.Configuration
             return BindInternal(sourcePropertyInfo, targetPropertyInfo, propertyConfig);
         }
 
-        private static readonly Type ListType = typeof(IList);
-        private static readonly Type CollectionType = typeof(ICollection);
+        internal MappingConfiguration(Dictionary<SourceToTargetMap, object> typeConfigs) => _typeConfigs = typeConfigs;
 
         internal MappingConfiguration<TSource, TTarget> BindInternal<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo,
@@ -73,9 +73,9 @@ namespace FeatherMap.Configuration
                 type = PropertyMapBase.PropertyType.Struct;
             else if (sourcePropertyInfo.PropertyType.IsArray)
                 type = PropertyMapBase.PropertyType.Array;
-            else if (ListType.IsAssignableFrom(sourcePropertyInfo.PropertyType))
+            else if (typeof(IList).IsAssignableFrom(sourcePropertyInfo.PropertyType))
                 type = PropertyMapBase.PropertyType.List;
-            else if (CollectionType.IsAssignableFrom(sourcePropertyInfo.PropertyType))
+            else if (typeof(ICollection).IsAssignableFrom(sourcePropertyInfo.PropertyType))
                 type = PropertyMapBase.PropertyType.Collection;
             else if (sourcePropertyInfo.PropertyType.IsClass && sourcePropertyInfo.PropertyType != typeof(string))
                 type = PropertyMapBase.PropertyType.Complex;
@@ -105,7 +105,7 @@ namespace FeatherMap.Configuration
                     return (MappingConfiguration<TSourceProperty, TTargetProperty>) propertyMap.GetMappingConfiguration();
             }
 
-            return new MappingConfiguration<TSourceProperty, TTargetProperty>();
+            return new MappingConfiguration<TSourceProperty, TTargetProperty>(_typeConfigs);
         }
 
         internal HashSet<string> PropertiesToIgnore { get; } = new HashSet<string>();

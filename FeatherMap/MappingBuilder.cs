@@ -12,7 +12,7 @@ namespace FeatherMap
         public static Action<TSource, TTarget> Create<TSource, TTarget>(
             Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgAction)
         {
-            var mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
+            var mappingConfiguration = new MappingConfiguration<TSource, TTarget>(new Dictionary<SourceToTargetMap, object>());
             mappingConfiguration = cfgAction(mappingConfiguration);
             var result = CreateMap(typeof(TSource), typeof(TTarget), mappingConfiguration, new Dictionary<SourceToTargetMap, MapTracker>());
 
@@ -140,13 +140,13 @@ namespace FeatherMap
 
         public static Action<TSource, TTarget> Auto<TSource, TTarget>(Func<MappingConfiguration<TSource, TTarget>, MappingConfiguration<TSource, TTarget>> cfgFunc)
         {
-            var cfg = new MappingConfiguration<TSource, TTarget>();
+            var existingConfigs = new Dictionary<SourceToTargetMap, object>();
+
+            var cfg = new MappingConfiguration<TSource, TTarget>(existingConfigs);
             cfg = cfgFunc(cfg);
 
-            var mappingConfigurations = new Dictionary<SourceToTargetMap, object>();
-
             return Create<TSource, TTarget>(configuration =>
-                ConfigurationBuilder.Auto(mappingConfigurations, cfg));
+                ConfigurationBuilder.Auto(existingConfigs, cfg));
         }
     }
 }

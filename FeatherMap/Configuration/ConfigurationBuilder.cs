@@ -7,16 +7,14 @@ namespace FeatherMap.Configuration
     internal static class ConfigurationBuilder
     {
         internal  static MappingConfiguration<TSource, TTarget> Auto<TSource, TTarget>(
-            Dictionary<SourceToTargetMap, object> typeConfigs, MappingConfiguration<TSource, TTarget> mappingConfiguration)
+            Dictionary<SourceToTargetMap, object> typeConfigs, 
+            MappingConfiguration<TSource, TTarget> mappingConfiguration)
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
 
             if (typeConfigs.TryGetValue(new SourceToTargetMap(sourceType, targetType), out var previousMappingConfig))
                 return (MappingConfiguration<TSource, TTarget>) previousMappingConfig;
-
-            if (mappingConfiguration == null)
-                mappingConfiguration = new MappingConfiguration<TSource, TTarget>();
 
             typeConfigs.Add(new SourceToTargetMap(sourceType, targetType), mappingConfiguration);
 
@@ -54,7 +52,7 @@ namespace FeatherMap.Configuration
             Dictionary<SourceToTargetMap, object> typeMappings)
         {
             mappingConfiguration.BindInternal(sourceProperty, targetProperty,
-                new PropertyConfig<TSourceProperty, TTargetProperty>()
+                new PropertyConfig<TSourceProperty, TTargetProperty>(typeMappings)
                     .CreateMap(x => Auto(typeMappings,
                         mappingConfiguration.GetChildConfigOrNew<TSourceProperty, TTargetProperty>(
                             sourceProperty, targetProperty))));
