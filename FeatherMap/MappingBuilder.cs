@@ -210,7 +210,8 @@ namespace FeatherMap
             void Map(TSource source, TTarget target, ReferenceTracker tracker)
             {
                 var sourceList = sourceGetter(source);
-                var result = new List<TTargetInstanceType>();
+                var result = new List<TTargetInstanceType>(sourceList.Count);
+
                 for (int i = 0; i < sourceList.Count; i++)
                 {
                     var item = sourceList[i];

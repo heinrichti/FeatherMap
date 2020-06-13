@@ -2,6 +2,7 @@
 using AutoMapper;
 using BenchmarkDotNet.Attributes;
 using FeatherMap;
+using Mapster;
 using Nelibur.ObjectMapper;
 using Mapper = AutoMapper.Mapper;
 
@@ -13,6 +14,8 @@ namespace BenchmarkCore
     {
         private Mapper _autoMapper;
         private Mapping<A, A> _featherMapNew;
+        private MapsterMapper.Mapper _mapsterMapper;
+        private TypeAdapterConfig _typeAdapterConfig;
 
         [GlobalSetup]
         public void Setup()
@@ -25,6 +28,23 @@ namespace BenchmarkCore
             _featherMapNew = Mapping<A, A>.Auto();
             TinyMapper.Bind<A, A>();
             ExpressMapper.Mapper.Register<A, A>();
+
+            var typeAdapterSetter = TypeAdapterConfig<A, A>
+                .NewConfig()
+                .PreserveReference(true);
+            typeAdapterSetter.Config.Compile();
+            _mapsterMapper = new MapsterMapper.Mapper(typeAdapterSetter.Config);
+
+            TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
+        }
+
+        [Benchmark]
+        public void Mapster()
+        {
+            var a = GetA();
+            var b = new A();
+
+            _mapsterMapper.Map(a, b);
         }
 
         [Benchmark]
@@ -57,6 +77,7 @@ namespace BenchmarkCore
             var a = new A {Int = 1};
             a.B = new B {Int = 2, C = new C() {Int = 3}};
             a.B.C.B = a.B;
+            a.B.C.A = a;
             return a;
         }
 
@@ -80,6 +101,8 @@ namespace BenchmarkCore
             public int Int { get; set; }
 
             public B B { get; set; }
+
+            public A A { get; set; }
         }
     }
 }

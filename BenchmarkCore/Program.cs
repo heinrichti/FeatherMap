@@ -4,6 +4,7 @@ using Nelibur.ObjectMapper;
 using System;
 using System.Threading.Tasks;
 using FeatherMap;
+using Mapster;
 
 namespace BenchmarkCore
 {
@@ -22,6 +23,7 @@ namespace BenchmarkCore
             referenceTrackingBenchmark.Setup();
             referenceTrackingBenchmark.FeatherMapBenchmark();
             referenceTrackingBenchmark.AutoMapper();
+            referenceTrackingBenchmark.Mapster();
 
             //await Task.Delay(5000);
 
@@ -46,18 +48,19 @@ namespace BenchmarkCore
             //await Task.Delay(5000);
 
 
-            BenchmarkRunner.Run<Program>();
-            //BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
+            //BenchmarkRunner.Run<Program>();
+            BenchmarkRunner.Run<ReferenceTrackingBenchmark>();
             //BenchmarkRunner.Run<StartupTime>();
             //BenchmarkRunner.Run<GettersSetters>();
-            //BenchmarkRunner.Run<NewVsOld>();
             //BenchmarkRunner.Run<ContructorBenchmark>();
             //BenchmarkRunner.Run<CreateOverheadBenchmark>();
+            //BenchmarkRunner.Run<ListBenchmark>();
         }
 
         private Person _personA;
         private Person _personB;
         private AutoMapper.IMapper _autoMapper;
+        private MapsterMapper.Mapper _mapsterMapper;
 
         [GlobalSetup]
         public void Setup()
@@ -76,6 +79,19 @@ namespace BenchmarkCore
             TinyMapper.Bind<Person, Person>();
 
             ExpressMapper.Mapper.Register<Person, Person>();
+
+            var typeAdapterSetter = TypeAdapterConfig<Person, Person>.NewConfig();
+            typeAdapterSetter.Config.Compile();
+            _mapsterMapper = new MapsterMapper.Mapper(typeAdapterSetter.Config);
+        }
+
+        [Benchmark]
+        public void Mapster()
+        {
+            _personA = new Person { Id = Guid.NewGuid(), FirstName = "Test", LastName = "User", Address = new Address { Street = "Testavenue" } };
+            _personB = new Person();
+
+            _mapsterMapper.Map(_personA, _personB);
         }
 
         [Benchmark]
