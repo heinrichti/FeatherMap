@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -60,10 +61,39 @@ namespace FeatherMap
 
             var referenceTrackingTypes = new List<ReferenceTrackingType>();
             var actions = new List<Action<TSource, TTarget, ReferenceTracker>>();
+            var listType = typeof(IList);
 
             foreach (var propertyMap in config.PropertyMaps)
             {
-                if (propertyMap.HasMappingConfiguration())
+                if (listType.IsAssignableFrom(propertyMap.SourcePropertyInfo.PropertyType) && propertyMap.SourcePropertyInfo.PropertyType.IsGenericType)
+                {
+                    var sourceProperty = propertyMap.SourcePropertyInfo;
+                    var targetProperty = propertyMap.TargetPropertyInfo;
+
+                    var genericArguments = new Type[4 + sourceProperty.PropertyType.GenericTypeArguments.Length + targetProperty.PropertyType.GenericTypeArguments.Length];
+                    genericArguments[0] = typeof(TSource);
+                    genericArguments[1] = typeof(TTarget);
+                    genericArguments[2] = sourceProperty.PropertyType;
+                    genericArguments[3] = targetProperty.PropertyType;
+                    for (int i = 0; i < sourceProperty.PropertyType.GenericTypeArguments.Length; i++)
+                    {
+                        genericArguments[i + 4] = sourceProperty.PropertyType.GenericTypeArguments[i];
+                    }
+
+                    for (int i = 0; i < targetProperty.PropertyType.GenericTypeArguments.Length; i++)
+                    {
+                        genericArguments[i + 4 + sourceProperty.PropertyType.GenericTypeArguments.Length] =
+                            targetProperty.PropertyType.GenericTypeArguments[i];
+                    }
+
+                    var bindFunc = typeof(MappingBuilder).GetMethod(nameof(CreateListMap),
+                            BindingFlags.Static | BindingFlags.NonPublic)
+                        .MakeGenericMethod(genericArguments);
+
+                    var action = (Action<TSource, TTarget, ReferenceTracker>)bindFunc.Invoke(null, new object[] {sourceProperty, targetProperty});
+                    actions.Add(action);
+                }
+                else if (propertyMap.HasMappingConfiguration())
                 {
                     var createMapFunc = complexPropertyMapMethod.MakeGenericMethod(
                         sourceType, propertyMap.SourcePropertyInfo.PropertyType, 
@@ -72,7 +102,6 @@ namespace FeatherMap
                         new[] {propertyMap.SourcePropertyInfo, propertyMap.TargetPropertyInfo, existingMaps, propertyMap.ConfigObject});
                     referenceTrackingTypes.AddRange(complexPropertyMapping.ReferenceTrackingTypes);
                     actions.Add(complexPropertyMapping.MappingFunc);
-
                 }
                 else
                 {
@@ -151,6 +180,40 @@ namespace FeatherMap
             }
 
             return mappingConfiguration;
+        }
+
+        private static Action<TSource, TTarget, ReferenceTracker> CreateListMap<TSource, TTarget, TSourceProperty, TTargetProperty, TSourceInstanceType, TTargetInstanceType>(
+            PropertyInfo sourceProperty, 
+            PropertyInfo targetProperty)
+            where TSourceProperty : List<TSourceInstanceType>
+            where TTargetProperty : List<TTargetInstanceType>
+        {
+            var sourceInstanceType = typeof(TSourceInstanceType);
+            var sourceGetter = PropertyAccess.CreateGetter<TSource, TSourceProperty>(sourceProperty);
+            var targetSetter = PropertyAccess.CreateSetter<TTarget, TTargetProperty>(targetProperty);
+
+            if (sourceInstanceType.IsPrimitive || sourceInstanceType == typeof(string) ||
+                sourceInstanceType.IsValueType)
+            {
+                var converter = IdentityPropertyConverter<TSourceInstanceType>.Instance as IPropertyConverter<TSourceInstanceType, TTargetInstanceType>;
+
+                Action<TSource, TTarget, ReferenceTracker> map = (source, target, arg3) =>
+                {
+                    var sourceList = sourceGetter(source);
+                    var result = new List<TTargetInstanceType>();
+                    for (int i = 0; i < sourceList.Count; i++)
+                    {
+                        var item = sourceList[i];
+                        result.Add(converter.Convert(item));
+                    }
+
+                    targetSetter(target, result as TTargetProperty);
+                };
+
+                return map;
+            }
+
+            return (source, target, arg3) => { };
         }
 
         private static void BindComplexConfig<TSource, TTarget, TSourceProperty, TTargetProperty>(
@@ -256,7 +319,7 @@ namespace FeatherMap
                 targetSetter(target, targetProp);
                 mappingFunc(sourceValue, targetProp, referenceTracker);
             };
-        
+
         private static Action<TSource, TTarget, ReferenceTracker> CreateSimplePropertyMap<TSource, TSourceProperty, TTarget, TTargetProperty>(
             PropertyInfo sourceProperty, 
             PropertyInfo targetProperty,
@@ -269,7 +332,7 @@ namespace FeatherMap
                 Action<TTarget, TTargetProperty> propertySetter, Func<TSourceProperty, TTargetProperty> convert) =>
                 (source, target, _) => propertySetter(target, convert(sourceGetter(source)));
 
-            return Func(getter, setter, cfg.Converterer.Convert);
+            return Func(getter, setter, cfg.Converter.Convert);
         }
     }
 }

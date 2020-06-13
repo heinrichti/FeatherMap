@@ -14,6 +14,22 @@ namespace FeatherMap
         internal bool ReferenceTrackingEnabled { get; private set; } = true;
 
         public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
+            Expression<Func<TSource, IList<TSourceProperty>>> sourceProperty,
+            Expression<Func<TTarget, IList<TTargetProperty>>> targetProperty)
+        {
+            var sourceMember = (MemberExpression)sourceProperty.Body;
+            var targetMember = (MemberExpression)targetProperty.Body;
+
+            var sourcePropertyInfo = sourceMember.Member.DeclaringType.GetProperty(sourceMember.Member.Name);
+            var targetPropertyInfo = targetMember.Member.DeclaringType.GetProperty(targetMember.Member.Name);
+
+            var cfg = new PropertyConfig<TSourceProperty, TTargetProperty>();
+            this.BindInternal(sourcePropertyInfo, targetPropertyInfo, cfg);
+
+            return this;
+        }
+
+        public MappingConfiguration<TSource, TTarget> Bind<TSourceProperty, TTargetProperty>(
             Expression<Func<TSource, TSourceProperty>> sourceProperty,
             Expression<Func<TTarget, TTargetProperty>> targetProperty) =>
             Bind(sourceProperty, targetProperty, config => { });
@@ -32,7 +48,7 @@ namespace FeatherMap
             var propertyConfig = new PropertyConfig<TSourceProperty, TTargetProperty>();
             configAction(propertyConfig);
 
-            if (typeof(TSourceProperty) != typeof(TTargetProperty) && propertyConfig.Converterer == null)
+            if (typeof(TSourceProperty) != typeof(TTargetProperty) && propertyConfig.Converter == null)
             {
                 throw new ArgumentException("Missing conversion: " + 
                                             sourcePropertyInfo.PropertyType.Name + " --> " + targetPropertyInfo.PropertyType.Name);
@@ -60,8 +76,7 @@ namespace FeatherMap
         internal MappingConfiguration<TSource, TTarget> BindInternal<TSourceProperty, TTargetProperty>(
             PropertyInfo sourcePropertyInfo,
             PropertyInfo targetPropertyInfo,
-            PropertyConfig<TSourceProperty, TTargetProperty> config
-        )
+            PropertyConfig<TSourceProperty, TTargetProperty> config)
         {
             var alreadyConfiguredMap = PropertyMaps.FirstOrDefault(x =>
                 x.SourcePropertyInfo == sourcePropertyInfo && x.TargetPropertyInfo == targetPropertyInfo);
